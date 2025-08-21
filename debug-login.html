@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Login Debug - BMW WorkTime Tracker</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0; 
+            padding: 20px;
+            background: #f8f9fa; 
+            color: #333;
+        }
+        .debug-container { 
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #0066CC, #004499);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .content {
+            padding: 30px;
+        }
+        .section { 
+            background: #f8f9fa;
+            padding: 20px; 
+            margin: 20px 0; 
+            border-radius: 8px; 
+            border-left: 4px solid #0066CC;
+        }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 6px; 
+            border: 1px solid; 
+            font-family: 'Monaco', 'Consolas', monospace;
+        }
+        .success { 
+            background: #d4edda; 
+            border-color: #c3e6cb; 
+            color: #155724; 
+        }
+        .error { 
+            background: #f8d7da; 
+            border-color: #f5c6cb; 
+            color: #721c24; 
+        }
+        .warning { 
+            background: #fff3cd; 
+            border-color: #ffeaa7; 
+            color: #856404; 
+        }
+        .info { 
+            background: #d1ecf1; 
+            border-color: #bee5eb; 
+            color: #0c5460; 
+        }
+        button { 
+            background: linear-gradient(135deg, #0066CC, #004499);
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            margin: 8px 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .log-output {
+            background: #1e1e1e;
+            color: #ffffff;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .metric {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0066CC;
+        }
+        .metric-label {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <div class="header">
+            <h1>🔍 BMW WorkTime Tracker - Debug Console</h1>
+            <p>Real-time authentication and redirect troubleshooting</p>
+        </div>
+        
+        <div class="content">
+            <div class="section">
+                <h3>🚨 Current Status</h3>
+                <div id="systemStatus"></div>
+            </div>
+
+            <div class="grid">
+                <div class="metric">
+                    <div class="metric-value" id="redirectCount">0</div>
+                    <div class="metric-label">Redirect Attempts</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="authChecks">0</div>
+                    <div class="metric-label">Auth Checks</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="loopDetections">0</div>
+                    <div class="metric-label">Loop Detections</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>🔧 Actions</h3>
+                <button onclick="runFullDiagnostic()">🔍 Run Full Diagnostic</button>
+                <button onclick="clearAllStorage()">🗑️ Clear All Storage</button>
+                <button onclick="testAuthentication()">🔐 Test Authentication</button>
+                <button onclick="simulateLogin()">👤 Simulate Login Flow</button>
+                <button onclick="forceLogout()">🚪 Force Logout</button>
+                <button onclick="clearLog()">📝 Clear Log</button>
+            </div>
+            
+            <div class="section">
+                <h3>📊 System Information</h3>
+                <div id="systemInfo"></div>
+            </div>
+            
+            <div class="section">
+                <h3>🔄 Redirect History</h3>
+                <div id="redirectHistory"></div>
+            </div>
+            
+            <div class="section">
+                <h3>📝 Live Debug Log</h3>
+                <div class="log-output" id="debugLog">Starting debug session...\n</div>
+            </div>
+            
+            <div class="section">
+                <h3>🚀 Navigation</h3>
+                <button onclick="goTo('index.html')">🏠 Home</button>
+                <button onclick="goTo('login.html')">🔐 Login Page</button>
+                <button onclick="goTo('main-app.html')">📱 Main App</button>
+                <button onclick="goTo('test-auth.html')">🧪 Auth Test</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/parse@4.0.1/dist/parse.min.js"></script>
+    <script src="config.js"></script>
+    <script src="redirect-manager.js"></script>
+    <script>
+        let redirectCount = 0;
+        let authCheckCount = 0;
+        let loopDetectionCount = 0;
+        
+        const log = document.getElementById('debugLog');
+        const systemStatus = document.getElementById('systemStatus');
+        const systemInfo = document.getElementById('systemInfo');
+        const redirectHistory = document.getElementById('redirectHistory');
+        
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toISOString().substr(11, 12);
+            const entry = `[${timestamp}] ${type.toUpperCase()}: ${message}\n`;
+            log.textContent += entry;
+            log.scrollTop = log.scrollHeight;
+            
+            // Also add to status if it's important
+            if (type === 'error' || type === 'warning') {
+                addStatus(message, type);
+            }
+        }
+        
+        function addStatus(message, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            systemStatus.appendChild(div);
+        }
+        
+        function updateMetric(id, value) {
+            document.getElementById(id).textContent = value;
+        }
+        
+        async function runFullDiagnostic() {
+            addLog('Starting full diagnostic...', 'info');
+            
+            try {
+                // Check Parse connection
+                addLog('Testing Parse connection...', 'info');
+                const TestQuery = new Parse.Query(Parse.User);
+                TestQuery.limit(1);
+                await TestQuery.find();
+                addStatus('✅ Parse connection successful', 'success');
+                
+                // Check current user
+                addLog('Checking current user...', 'info');
+                const currentUser = Parse.User.current();
+                if (currentUser) {
+                    addStatus(`✅ User logged in: ${currentUser.get('email')}`, 'success');
+                    
+                    // Verify session
+                    try {
+                        await currentUser.fetch();
+                        addStatus('✅ Session verified with server', 'success');
+                    } catch (e) {
+                        addStatus('❌ Session verification failed', 'error');
+                    }
+                } else {
+                    addStatus('ℹ️ No user currently logged in', 'info');
+                }
+                
+                // Check redirect manager
+                if (window.RedirectManager) {
+                    const redirectInProgress = window.RedirectManager.isRedirectInProgress();
+                    addStatus(`🔄 Redirect in progress: ${redirectInProgress}`, redirectInProgress ? 'warning' : 'success');
+                } else {
+                    addStatus('⚠️ RedirectManager not available', 'warning');
+                }
+                
+                // Check storage
+                const sessionKeys = Object.keys(sessionStorage);
+                const localKeys = Object.keys(localStorage);
+                addStatus(`💾 Storage: ${sessionKeys.length} session, ${localKeys.length} local items`, 'info');
+                
+                addLog('Diagnostic complete', 'success');
+                
+            } catch (error) {
+                addLog(`Diagnostic error: ${error.message}`, 'error');
+                addStatus(`❌ Diagnostic failed: ${error.message}`, 'error');
+            }
+            
+            authCheckCount++;
+            updateMetric('authChecks', authCheckCount);
+        }
+        
+        function clearAllStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            addLog('All storage cleared', 'info');
+            addStatus('✅ All storage cleared', 'success');
+        }
+        
+        async function testAuthentication() {
+            authCheckCount++;
+            updateMetric('authChecks', authCheckCount);
+            await runFullDiagnostic();
+        }
+        
+        async function simulateLogin() {
+            addLog('Simulating login flow...', 'info');
+            
+            if (window.RedirectManager) {
+                if (window.RedirectManager.shouldAllowRedirect()) {
+                    redirectCount++;
+                    updateMetric('redirectCount', redirectCount);
+                    addLog('Redirect would be allowed', 'success');
+                } else {
+                    loopDetectionCount++;
+                    updateMetric('loopDetections', loopDetectionCount);
+                    addLog('Redirect blocked - loop detection', 'warning');
+                }
+            } else {
+                addLog('RedirectManager not available', 'error');
+            }
+        }
+        
+        async function forceLogout() {
+            try {
+                addLog('Forcing logout...', 'info');
+                await Parse.User.logOut();
+                addStatus('✅ Logout successful', 'success');
+            } catch (error) {
+                addStatus(`❌ Logout failed: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearLog() {
+            log.textContent = 'Log cleared...\n';
+        }
+        
+        function goTo(page) {
+            addLog(`Navigating to ${page}`, 'info');
+            redirectCount++;
+            updateMetric('redirectCount', redirectCount);
+            
+            const redirectInfo = `${new Date().toLocaleTimeString()}: ${window.location.pathname} → ${page}`;
+            const div = document.createElement('div');
+            div.className = 'status info';
+            div.textContent = redirectInfo;
+            redirectHistory.appendChild(div);
+            
+            window.location.href = page;
+        }
+        
+        function updateSystemInfo() {
+            const info = {
+                'User Agent': navigator.userAgent,
+                'Current URL': window.location.href,
+                'Referrer': document.referrer,
+                'Screen Size': `${screen.width}x${screen.height}`,
+                'Viewport': `${window.innerWidth}x${window.innerHeight}`,
+                'Cookies Enabled': navigator.cookieEnabled,
+                'Online': navigator.onLine,
+                'Language': navigator.language,
+                'Platform': navigator.platform,
+                'Local Time': new Date().toLocaleString(),
+                'Timezone': Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            
+            let html = '<table style="width:100%; font-size: 0.9em;">';
+            for (const [key, value] of Object.entries(info)) {
+                html += `<tr><td style="font-weight:bold; padding:5px;">${key}:</td><td style="padding:5px;">${value}</td></tr>`;
+            }
+            html += '</table>';
+            
+            systemInfo.innerHTML = html;
+        }
+        
+        // Auto-run initial diagnostic
+        setTimeout(async () => {
+            updateSystemInfo();
+            await runFullDiagnostic();
+            
+            // Set up periodic status updates
+            setInterval(updateSystemInfo, 30000);
+        }, 1000);
+        
+        // Log page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            addLog(`Page visibility: ${document.hidden ? 'hidden' : 'visible'}`, 'info');
+        });
+        
+        // Log any errors
+        window.addEventListener('error', (e) => {
+            addLog(`JavaScript Error: ${e.message} at ${e.filename}:${e.lineno}`, 'error');
+        });
+        
+        addLog('Debug console initialized', 'success');
+    </script>
+</body>
+</html>
