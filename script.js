@@ -21,8 +21,9 @@ class WorkTimeTracker {
 	async performAuthCheck() {
 		try {
 			console.log('Performing authentication check...');
-			
-			if (!this.checkAuthentication()) {
+
+			const isAuth = await this.checkAuthentication();
+			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
 				// Add parameter to prevent infinite loops
 				window.location.href = 'login.html?from=main-app';
@@ -45,8 +46,8 @@ class WorkTimeTracker {
 	}
 
 	async initializeApp() {
-		// Initialize cloud storage first
-		this.cloudStorage = window.cloudStorage;
+		// Initialize cloud storage after auth to avoid races
+		this.cloudStorage = window.CloudStorage ? new window.CloudStorage() : null;
 		
 		// Data will be loaded from cloud, not localStorage
 		this.sessions = [];
@@ -156,9 +157,8 @@ class WorkTimeTracker {
 			await workData.save();
 			
 			console.log('Data saved to cloud successfully');
-			
 			// Update sync status
-			if (this.cloudStorage) {
+			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
 				this.cloudStorage.updateSyncStatus('synced');
 			}
 			
@@ -188,7 +188,7 @@ class WorkTimeTracker {
 		}
 	}
 
-	checkAuthentication() {
+	async checkAuthentication() {
 		try {
 			// Check if Parse is initialized
 			if (typeof Parse === 'undefined') {
@@ -210,9 +210,17 @@ class WorkTimeTracker {
 				console.log('No session token found, user session may be invalid');
 				return false;
 			}
-			
-			console.log('Authentication check passed');
-			return true;
+
+			// Verify session by fetching user from server to avoid stale sessions
+			try {
+				await currentUser.fetch();
+				console.log('Authentication check passed (server verified)');
+				return true;
+			} catch (e) {
+				console.warn('Session fetch failed, logging out', e);
+				await Parse.User.logOut();
+				return false;
+			}
 		} catch (error) {
 			console.error('Authentication check error:', error);
 			return false;
@@ -412,11 +420,9 @@ class WorkTimeTracker {
 	}
 
 	forceSync() {
-		if (this.cloudStorage) {
+		if (this.cloudStorage && typeof this.cloudStorage.syncNow === 'function') {
 			this.showLoading('Syncing data...');
-			this.cloudStorage.syncToCloud().finally(() => {
-				this.hideLoading();
-			});
+			this.cloudStorage.syncNow().finally(() => this.hideLoading());
 		}
 	}
 
@@ -492,8 +498,8 @@ class WorkTimeTracker {
 		const now = new Date();
 		this.activeSessions.forEach(session => this.completeSession(session, now));
 		this.activeSessions = [];
-		this.saveToStorage();
-		this.saveActiveSessionsToStorage();
+		this.hasRecentChanges = true;
+		this.saveToCloud();
 		this.updateDisplay();
 	}
 
@@ -505,8 +511,8 @@ class WorkTimeTracker {
 		this.completeSession(session, now);
 		this.sessions.push(session);
 		this.activeSessions.splice(idx, 1);
-		this.saveToStorage();
-		this.saveActiveSessionsToStorage();
+		this.hasRecentChanges = true;
+		this.saveToCloud();
 		this.updateDisplay();
 	}
 
@@ -1060,8 +1066,8 @@ class WorkTimeTracker {
 			this.sessions.push(session);
 		});
 		this.activeSessions = todaysActive;
-		this.saveToStorage();
-		this.saveActiveSessionsToStorage();
+		this.hasRecentChanges = true;
+		this.saveToCloud();
 	}
 	showLunchAlert() {
 		this.els.lunchAlert.style.display = 'block';

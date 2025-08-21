@@ -59,7 +59,7 @@
         <div class="debug-info" id="debugInfo">Checking authentication...</div>
     </div>
 
-    <script src="https://npmcdn.com/parse/dist/parse.min.js"></script>
+    <script src="https://unpkg.com/parse@4.0.1/dist/parse.min.js"></script>
     <script src="config.js"></script>
     <script>
         let debugInfo = document.getElementById('debugInfo');
@@ -82,18 +82,18 @@
                     try {
                         await currentUser.fetch();
                         updateStatus('Authentication successful, loading app...');
-                        window.location.href = 'main-app.html';
+                        window.location.href = 'main-app.html?from=loading';
                     } catch (error) {
                         updateStatus('Session expired, redirecting to login...');
                         await Parse.User.logOut();
                         setTimeout(() => {
-                            window.location.href = 'login.html';
+                            window.location.href = 'login.html?from=loading&reason=session-expired';
                         }, 1000);
                     }
                 } else {
                     updateStatus('No user session found, redirecting to login...');
                     setTimeout(() => {
-                        window.location.href = 'login.html';
+                        window.location.href = 'login.html?from=loading&reason=no-session';
                     }, 1000);
                 }
                 
@@ -101,7 +101,7 @@
                 console.error('Initialization error:', error);
                 updateStatus('Error: ' + error.message);
                 setTimeout(() => {
-                    window.location.href = 'login.html?error=init-failed';
+                    window.location.href = 'login.html?from=loading&error=init-failed';
                 }, 2000);
             }
         }

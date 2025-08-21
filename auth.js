@@ -20,12 +20,21 @@ class AuthSystem {
     checkForErrors() {
         const urlParams = new URLSearchParams(window.location.search);
         const error = urlParams.get('error');
-        const fromMainApp = urlParams.get('from') === 'main-app';
+        const from = urlParams.get('from');
         
         if (error === 'auth-failed') {
             this.showMessage('Authentication failed. Please login again.', 'error');
-        } else if (fromMainApp) {
+        } else if (from === 'main-app') {
             this.showMessage('Session expired. Please login again.', 'info');
+        } else if (from === 'loading') {
+            const reason = urlParams.get('reason');
+            if (reason === 'session-expired') {
+                this.showMessage('Your session expired. Please sign in again.', 'info');
+            } else if (reason === 'no-session') {
+                // No message needed; normal flow
+            } else if (error === 'init-failed') {
+                this.showMessage('Initialization failed. Please try signing in.', 'error');
+            }
         }
     }
     
@@ -129,12 +138,11 @@ Page: ${window.location.pathname}`);
 
     async checkCurrentUser() {
         try {
-            // Prevent infinite redirect loops by checking if we just came from main app
+            // Prevent infinite redirect loops by checking if we were redirected here intentionally
             const urlParams = new URLSearchParams(window.location.search);
-            const fromMainApp = urlParams.get('from') === 'main-app';
-            
-            if (fromMainApp) {
-                console.log('Redirected from main app, staying on login page');
+            const from = urlParams.get('from');
+            if (from) {
+                console.log('Redirected here with from=', from, '— staying on login page');
                 return;
             }
             

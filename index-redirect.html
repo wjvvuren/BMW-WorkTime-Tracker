@@ -77,7 +77,7 @@
         <h1>BMW WorkTime Tracker</h1>
         <p>Professional time tracking with cloud synchronization</p>
         <a href="loading-screen.html" class="redirect-btn" id="redirectBtn">
-            Enter App
+                Enter App
         </a>
         <div class="countdown" id="countdown">
             Redirecting automatically in <span id="timer">5</span> seconds...
@@ -95,14 +95,14 @@
             
             if (countdown <= 0) {
                 clearInterval(interval);
-                window.location.href = 'loading-screen.html';
+                    window.location.href = 'loading-screen.html?from=index';
             }
         }, 1000);
         
         // Allow manual navigation
         document.getElementById('redirectBtn').addEventListener('click', () => {
             clearInterval(interval);
-            window.location.href = 'loading-screen.html';
+                window.location.href = 'loading-screen.html?from=index';
         });
     </script>
 </body>

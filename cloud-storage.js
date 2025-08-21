@@ -11,9 +11,9 @@ class CloudStorage {
         try {
             // Check if user is logged in
             this.currentUser = Parse.User.current();
+            // If no user yet, stay idle. Main app handles auth/redirects.
             if (!this.currentUser) {
-                // Redirect to login if no user
-                window.location.href = 'login.html';
+                console.log('[CloudStorage] No current user; idle until app initializes.');
                 return;
             }
 
@@ -95,7 +95,7 @@ class CloudStorage {
             await Parse.User.logOut();
             
             console.log('User logged out successfully');
-            window.location.href = 'login.html';
+            window.location.href = 'login.html?from=main-app';
             
         } catch (error) {
             console.error('Logout error:', error);
@@ -103,7 +103,7 @@ class CloudStorage {
             
             // Force redirect even if logout fails
             localStorage.clear();
-            window.location.href = 'login.html';
+            window.location.href = 'login.html?from=main-app';
         }
     }
 
@@ -317,7 +317,7 @@ class CloudStorage {
     }
 }
 
-// Initialize cloud storage when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    window.cloudStorage = new CloudStorage();
-});
+// Expose class for manual instantiation by main app after auth.
+window.CloudStorage = CloudStorage;
+// NOTE: Do not auto-initialize here to avoid race conditions with auth.
+// The main app will instantiate CloudStorage after authentication.
