@@ -36,6 +36,7 @@ jobs:
           
           # Copy all necessary files to _site
           cp index-redirect.html _site/index.html
+          cp loading-screen.html _site/
           cp login.html _site/
           cp index.html _site/main-app.html
           cp styles.css _site/

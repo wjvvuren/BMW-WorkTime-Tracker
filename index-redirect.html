@@ -76,7 +76,7 @@
         <div class="bmw-logo">🚗</div>
         <h1>BMW WorkTime Tracker</h1>
         <p>Professional time tracking with cloud synchronization</p>
-        <a href="login.html" class="redirect-btn" id="redirectBtn">
+        <a href="loading-screen.html" class="redirect-btn" id="redirectBtn">
             Enter App
         </a>
         <div class="countdown" id="countdown">
@@ -95,13 +95,14 @@
             
             if (countdown <= 0) {
                 clearInterval(interval);
-                window.location.href = 'login.html';
+                window.location.href = 'loading-screen.html';
             }
         }, 1000);
         
         // Allow manual navigation
         document.getElementById('redirectBtn').addEventListener('click', () => {
             clearInterval(interval);
+            window.location.href = 'loading-screen.html';
         });
     </script>
 </body>

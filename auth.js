@@ -8,10 +8,25 @@ class AuthSystem {
     init() {
         this.bindEvents();
         
+        // Check for error messages from URL params
+        this.checkForErrors();
+        
         // Add debug info
         this.addDebugInfo();
         
         this.checkCurrentUser();
+    }
+    
+    checkForErrors() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const error = urlParams.get('error');
+        const fromMainApp = urlParams.get('from') === 'main-app';
+        
+        if (error === 'auth-failed') {
+            this.showMessage('Authentication failed. Please login again.', 'error');
+        } else if (fromMainApp) {
+            this.showMessage('Session expired. Please login again.', 'info');
+        }
     }
     
     addDebugInfo() {
@@ -114,6 +129,15 @@ Page: ${window.location.pathname}`);
 
     async checkCurrentUser() {
         try {
+            // Prevent infinite redirect loops by checking if we just came from main app
+            const urlParams = new URLSearchParams(window.location.search);
+            const fromMainApp = urlParams.get('from') === 'main-app';
+            
+            if (fromMainApp) {
+                console.log('Redirected from main app, staying on login page');
+                return;
+            }
+            
             // Add a small delay to ensure Parse is fully initialized
             await new Promise(resolve => setTimeout(resolve, 100));
             
@@ -125,6 +149,10 @@ Page: ${window.location.pathname}`);
                 try {
                     await this.currentUser.fetch();
                     console.log('User session verified, redirecting to main app');
+                    
+                    // Add a flag to prevent circular redirects
+                    sessionStorage.setItem('authRedirectInProgress', 'true');
+                    
                     // User is already logged in and session is valid, redirect to main app
                     window.location.href = 'main-app.html';
                 } catch (sessionError) {

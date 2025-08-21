@@ -8,12 +8,43 @@ class WorkTimeTracker {
 			return;
 		}
 
-		// Check authentication
-		if (!this.checkAuthentication()) {
-			window.location.href = 'login.html';
-			return;
+		// Check for redirect loops
+		if (sessionStorage.getItem('authRedirectInProgress') === 'true') {
+			console.log('Potential redirect loop detected, clearing flag');
+			sessionStorage.removeItem('authRedirectInProgress');
 		}
 
+		// Check authentication with more robust error handling
+		this.performAuthCheck();
+	}
+
+	async performAuthCheck() {
+		try {
+			console.log('Performing authentication check...');
+			
+			if (!this.checkAuthentication()) {
+				console.log('Authentication failed, redirecting to login');
+				// Add parameter to prevent infinite loops
+				window.location.href = 'login.html?from=main-app';
+				return;
+			}
+
+			console.log('Authentication successful, initializing app');
+			
+			// Clear any redirect flags
+			sessionStorage.removeItem('authRedirectInProgress');
+			
+			// Initialize the app
+			await this.initializeApp();
+			
+		} catch (error) {
+			console.error('Error during authentication check:', error);
+			// On any error, redirect to login with error flag
+			window.location.href = 'login.html?from=main-app&error=auth-failed';
+		}
+	}
+
+	async initializeApp() {
 		// Initialize cloud storage first
 		this.cloudStorage = window.cloudStorage;
 		
@@ -32,7 +63,7 @@ class WorkTimeTracker {
 		this.setupUserInterface();
 		
 		// Load data from cloud first, then start app
-		this.initializeFromCloud();
+		await this.initializeFromCloud();
 	}
 
 	async initializeFromCloud() {
@@ -159,20 +190,28 @@ class WorkTimeTracker {
 
 	checkAuthentication() {
 		try {
+			// Check if Parse is initialized
+			if (typeof Parse === 'undefined') {
+				console.error('Parse is not defined - config may not be loaded');
+				return false;
+			}
+
 			const currentUser = Parse.User.current();
 			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
 			
 			if (!currentUser) {
+				console.log('No current user found');
 				return false;
 			}
 			
 			// Additional check - verify we have a valid session token
 			const sessionToken = currentUser.getSessionToken();
 			if (!sessionToken) {
-				console.log('No session token found, redirecting to login');
+				console.log('No session token found, user session may be invalid');
 				return false;
 			}
 			
+			console.log('Authentication check passed');
 			return true;
 		} catch (error) {
 			console.error('Authentication check error:', error);
