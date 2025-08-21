@@ -53,10 +53,11 @@ class WorkTimeTracker {
 				
 				if (existingRedirect !== 'true' || !existingTimestamp || 
 				    (Date.now() - parseInt(existingTimestamp)) > 10000) {
-					
+					// set flags then redirect to login, adding a cache-busting param to avoid cached html
 					sessionStorage.setItem('authRedirectInProgress', 'true');
 					sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
-					window.location.href = 'login.html?from=main-app';
+					const cb = `cb=${Date.now()}`;
+					window.location.href = `login.html?from=main-app&${cb}`;
 				} else {
 					console.log('Recent redirect attempt detected, avoiding duplicate redirect');
 					this.updateMainDebug('Avoiding duplicate redirect');

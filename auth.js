@@ -159,6 +159,17 @@ Page: ${window.location.pathname}`);
                 this.updateQuickDebug(`Redirected from ${from} - staying on login`);
                 // Clear any redirect flags since we're now on login page
                 sessionStorage.removeItem('authRedirectInProgress');
+                sessionStorage.removeItem('authRedirectTimestamp');
+                // If we were redirected from main due to auth failure, ensure no stale session persists
+                try {
+                    const maybeUser = Parse.User.current();
+                    if (maybeUser) {
+                        console.log('Logging out stale user after redirect from main');
+                        await Parse.User.logOut();
+                    }
+                } catch (e) {
+                    console.warn('Logout after redirect failed:', e);
+                }
                 // Clean up the URL
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState({}, document.title, window.location.pathname);
@@ -166,24 +177,28 @@ Page: ${window.location.pathname}`);
                 return;
             }
             
-            // Check if we're in a redirect loop - but be more strict about timing
+            // Check if we're in a redirect loop - but do not block on login
             const redirectFlag = sessionStorage.getItem('authRedirectInProgress');
             const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
             
             if (redirectFlag === 'true') {
                 const now = Date.now();
                 const timestamp = parseInt(redirectTimestamp) || 0;
-                
+                const age = now - timestamp;
+
                 // If redirect was set more than 10 seconds ago, clear it (likely stale)
-                if (now - timestamp > 10000) {
+                if (age > 10000) {
                     console.log('Clearing stale redirect flag');
                     this.updateQuickDebug('Clearing stale redirect flag');
                     sessionStorage.removeItem('authRedirectInProgress');
                     sessionStorage.removeItem('authRedirectTimestamp');
                 } else {
-                    console.log('Recent redirect in progress detected, staying on login page');
-                    this.updateQuickDebug(`Redirect in progress (${Math.round((now - timestamp) / 1000)}s ago)`);
-                    return;
+                    // On login page, don't block due to a recent redirect flag (can cause a stuck state)
+                    console.log('Recent redirect flag detected on login, clearing and continuing auth check');
+                    this.updateQuickDebug(`Recent redirect flag detected (${Math.round(age / 1000)}s) - continuing...`);
+                    sessionStorage.removeItem('authRedirectInProgress');
+                    sessionStorage.removeItem('authRedirectTimestamp');
+                    // Continue with auth check instead of returning
                 }
             }
             
@@ -291,7 +306,7 @@ Page: ${window.location.pathname}`);
             
             setTimeout(() => {
                 window.location.href = 'main-app.html';
-            }, 1500);
+            }, 400);
 
         } catch (error) {
             console.error('Login error:', error);
