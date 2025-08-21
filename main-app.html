@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMW WorkTime Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="bmw-logo">
+                <div class="logo-circle">
+                    <div class="logo-quadrant q1"></div>
+                    <div class="logo-quadrant q2"></div>
+                    <div class="logo-quadrant q3"></div>
+                    <div class="logo-quadrant q4"></div>
+                    <!-- <div class="logo-center">BMW</div> -->
+                </div>
+            </div>
+            <h1 class="title">WorkTime Tracker</h1>
+            <div class="header-controls">
+                <div class="user-info" id="userInfo">
+                    <span id="userName">Loading...</span>
+                    <button class="user-menu-btn" id="userMenuBtn">⚙️</button>
+                </div>
+                <div class="sync-status" id="syncStatus">
+                    <span class="sync-icon">☁️</span>
+                    <span class="sync-text">Synced</span>
+                </div>
+            </div>
+            <div class="date-display" id="currentDate"></div>
+        </header>
+
+        <!-- User Menu Dropdown -->
+        <div class="user-menu" id="userMenu" style="display: none;">
+            <div class="menu-item" id="syncNowBtn">
+                <span class="menu-icon">🔄</span>
+                Sync Now
+            </div>
+            <div class="menu-item" id="profileBtn">
+                <span class="menu-icon">👤</span>
+                Profile
+            </div>
+            <div class="menu-divider"></div>
+            <div class="menu-item" id="logoutBtn">
+                <span class="menu-icon">🚪</span>
+                Sign Out
+            </div>
+        </div>
+
+        <main class="main-content">
+            <!-- Time Display Section -->
+            <section class="time-section">
+                <div class="time-card">
+                    <h2>Current Session Time</h2>
+                    <div class="time-display" id="currentSessionTime">00:00:00</div>
+                    <div class="session-status" id="sessionStatus">No active sessions</div>
+                </div>
+
+                <div class="time-card">
+                    <h2>Total Time Today</h2>
+                    <div class="time-display primary" id="totalHoursToday">00:00:00</div>
+                    <div class="session-status">Actual time spent</div>
+                </div>
+
+                <div class="time-card">
+                    <h2>Billable Work Hours</h2>
+                    <div class="time-display primary" id="billableHoursToday">00:00:00</div>
+                    <div class="session-status" id="lunchDeductionStatus">No lunch deduction yet</div>
+                </div>
+
+                <div class="time-card warning" id="countdownCard" style="display: none;">
+                    <h2>Time Until Maximum</h2>
+                    <div class="time-display countdown" id="timeRemaining">10:00:00</div>
+                    <div class="warning-text" id="warningText">Clock out at latest: <span id="maxClockOut"></span></div>
+                    <div class="warning-text">Based on billable hours (lunch excluded)</div>
+                </div>
+            </section>
+
+            <!-- Progress Bars Section -->
+            <section class="progress-section">
+                <!-- Custom Target Progress -->
+                <div class="progress-container custom-target">
+                    <div class="progress-header">
+                        <h3>🎯 Progress to My Target</h3>
+                        <div class="progress-controls">
+                            <span class="progress-text" id="customTargetText">Target: Set your goal</span>
+                            <button class="target-btn" id="setCustomTargetBtn" title="Set Custom Target">⚙️</button>
+                        </div>
+                    </div>
+                    <div class="progress-bar custom-progress" id="customProgressBar">
+                        <div class="progress-fill" id="customProgressFill"></div>
+                    </div>
+                    <div class="target-countdown" id="customTargetCountdown" style="display: none;">
+                        <span class="countdown-label">Time remaining:</span>
+                        <span class="countdown-time" id="customTargetTime">--:--:--</span>
+                    </div>
+                </div>
+
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <h3>🍔 Progress to Lunch Break</h3>
+                        <span class="progress-text">Target: 5 hours for automatic lunch deduction</span>
+                    </div>
+                    <div class="progress-bar lunch-progress" id="lunchProgressBar">
+                        <div class="progress-fill" id="lunchProgressFill"></div>
+                    </div>
+                </div>
+                
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <h3>🏁 Progress to Daily Maximum</h3>
+                        <span class="progress-text">Target: 10 hours billable</span>
+                    </div>
+                    <div class="progress-bar daily-progress" id="dailyProgressBar">
+                        <div class="progress-fill" id="dailyProgressFill"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <section class="action-section">
+                <button class="action-btn manual-entry" id="manualEntryBtn">
+                    <span class="btn-icon">✏️</span>
+                    <span class="btn-text">Add Time Entry</span>
+                </button>
+
+                <button class="action-btn complete-session" id="completeSessionBtn" style="display: none;">
+                    <span class="btn-icon">✅</span>
+                    <span class="btn-text">Complete Current Session</span>
+                </button>
+            </section>
+
+            <!-- Lunch Break Alert -->
+            <div class="lunch-alert" id="lunchAlert" style="display: none;">
+                <div class="alert-content">
+                    <h3>🍽 Automatic Lunch Break Applied!</h3>
+                    <p>Your session exceeded 5 hours. A 30-minute lunch break has been automatically deducted from your total.</p>
+                </div>
+            </div>
+
+            <!-- Manual Entry Modal -->
+            <div class="modal-overlay" id="modalOverlay" style="display: none;">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3>Manual Time Entry</h3>
+                        <button class="modal-close" id="modalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="entryType">Entry Type:</label>
+                            <select id="entryType" class="form-input">
+                                <option value="new-session">New Session</option>
+                                <option value="check-out-only">Check Out Only</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="entryDate">Date:</label>
+                            <input type="date" id="entryDate" class="form-input">
+                        </div>
+
+                        <div id="activeSessionSelect" style="display: none;">
+                            <div class="form-group">
+                                <label for="selectActiveSession">Select Active Session to Complete:</label>
+                                <select id="selectActiveSession" class="form-input">
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="newSessionFields">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="checkInTime">Check In Time:</label>
+                                    <input type="time" id="checkInTime" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="checkOutTime">Check Out Time (Optional):</label>
+                                    <input type="time" id="checkOutTime" class="form-input">
+                                    <small class="form-help">Leave empty for active session</small>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="sessionType">Session Type:</label>
+                                <select id="sessionType" class="form-input">
+                                    <option value="work">Work Session</option>
+                                    <option value="lunch">Lunch Break</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="durationGroup" style="display: none;">
+                                <label for="sessionDuration">Duration (hours):</label>
+                                <input type="number" id="sessionDuration" class="form-input" step="0.25" min="0.25" max="12" placeholder="e.g., 8.5">
+                                <small class="form-help">Used when check-out time is not specified. Leave empty to create active session.</small>
+                            </div>
+                        </div>
+
+                        <div id="checkOutOnlyFields" style="display: none;">
+                            <div class="form-group">
+                                <label for="checkOutTimeOnly">Check Out Time:</label>
+                                <input type="time" id="checkOutTimeOnly" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn-secondary" id="cancelEntry">Cancel</button>
+                            <button class="btn-primary" id="saveEntry">Save Entry</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Custom Target Modal -->
+            <div class="modal-overlay" id="customTargetModal" style="display: none;">
+                <div class="modal custom-target-modal">
+                    <div class="modal-header">
+                        <h3>🎯 Set Your Daily Target</h3>
+                        <button class="modal-close" id="customTargetModalClose">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="target-options">
+                            <div class="form-group">
+                                <label for="customTargetHours">Target Hours for Today:</label>
+                                <input type="number" id="customTargetHours" class="form-input" 
+                                       min="1" max="16" step="0.5" placeholder="8.0">
+                                <small class="form-help">Set your personal goal for today (1-16 hours)</small>
+                            </div>
+                            
+                            <div class="preset-targets">
+                                <h4>Quick Presets:</h4>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" data-hours="6">6h</button>
+                                    <button class="preset-btn" data-hours="7">7h</button>
+                                    <button class="preset-btn" data-hours="8">8h</button>
+                                    <button class="preset-btn" data-hours="8.5">8.5h</button>
+                                    <button class="preset-btn" data-hours="9">9h</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button class="btn-secondary" id="cancelCustomTarget">Cancel</button>
+                            <button class="btn-danger" id="clearCustomTarget">Clear Target</button>
+                            <button class="btn-primary" id="saveCustomTarget">Set Target</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <section class="active-sessions-section" id="activeSessionsSection" style="display: none;">
+                <h2>Active Sessions</h2>
+                <div class="active-sessions-list" id="activeSessionsList">
+                </div>
+            </section>
+
+            <!-- Today's Sessions -->
+            <section class="sessions-section">
+                <h2>Today's Sessions</h2>
+                <div class="sessions-list" id="sessionsList">
+                    <div class="no-sessions">No sessions recorded today</div>
+                </div>
+            </section>
+
+            <!-- Statistics -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <h3>Sessions Today</h3>
+                    <div class="stat-value" id="sessionsCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Breaks Taken</h3>
+                    <div class="stat-value" id="breaksCount">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Efficiency</h3>
+                    <div class="stat-value" id="efficiency">100%</div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Reset Button -->
+        <footer class="footer">
+            <button class="reset-btn" id="resetBtn">Reset Day</button>
+        </footer>
+    </div>
+
+    <!-- Particles Animation -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="globalLoadingOverlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner large"></div>
+            <p id="loadingText">Loading...</p>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://unpkg.com/parse@4.0.1/dist/parse.min.js"></script>
+    <script src="config.js"></script>
+    <script src="cloud-storage.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

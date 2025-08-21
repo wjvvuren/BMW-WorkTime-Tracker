@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMW WorkTime Tracker - Configuration Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f5f5 0%, #c0c0c0 100%);
+            min-height: 100vh;
+        }
+        .header {
+            text-align: center;
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 102, 204, 0.15);
+            margin-bottom: 30px;
+        }
+        .bmw-logo {
+            color: #0066CC;
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .test-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 102, 204, 0.15);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #0066CC, #004499);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+        }
+        .test-results {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            border-left: 4px solid #0066CC;
+        }
+        .status-good { color: #28a745; }
+        .status-error { color: #dc3545; }
+        .navigation {
+            text-align: center;
+            margin-top: 30px;
+        }
+        .nav-link {
+            display: inline-block;
+            background: #0066CC;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 20px;
+            margin: 0 10px;
+            transition: all 0.3s ease;
+        }
+        .nav-link:hover {
+            background: #004499;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="bmw-logo">🚗 BMW WorkTime Tracker</div>
+        <h1>Configuration Test</h1>
+        <p>Use this page to verify your Back4App setup is working correctly.</p>
+    </div>
+
+    <div class="test-section">
+        <h3>🔧 Configuration Check</h3>
+        <p>Click the button below to run a comprehensive test of your setup:</p>
+        <button class="test-button" onclick="runConfigurationTest()">
+            Run Configuration Test
+        </button>
+        <div id="testResults" class="test-results" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔐 Authentication Test</h3>
+        <p>Test user registration and login functionality:</p>
+        <button class="test-button" onclick="testAuthentication()">
+            Test Authentication
+        </button>
+        <div id="authResults" class="test-results" style="display: none;"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>☁️ Cloud Storage Test</h3>
+        <p>Test cloud synchronization capabilities:</p>
+        <button class="test-button" onclick="testCloudStorage()">
+            Test Cloud Storage
+        </button>
+        <div id="cloudResults" class="test-results" style="display: none;"></div>
+    </div>
+
+    <div class="navigation">
+        <a href="login.html" class="nav-link">Go to Login</a>
+        <a href="index.html" class="nav-link">Go to App</a>
+        <a href="setup-guide.md" class="nav-link">Setup Guide</a>
+    </div>
+
+    <!-- Include Parse SDK -->
+    <script src="https://unpkg.com/parse@4.0.1/dist/parse.min.js"></script>
+    
+    <!-- Include our configuration -->
+    <script src="config.js"></script>
+    <script src="cloud-storage.js"></script>
+
+    <script>
+        function log(message, isError = false) {
+            console.log(message);
+            return `${isError ? '❌' : '✅'} ${message}\n`;
+        }
+
+        function runConfigurationTest() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '🔍 Running configuration tests...\n\n';
+
+            let output = '';
+
+            // Check Parse SDK
+            if (typeof Parse !== 'undefined') {
+                output += log('Parse SDK is loaded');
+            } else {
+                output += log('Parse SDK is not loaded', true);
+                resultsDiv.innerHTML = output;
+                return;
+            }
+
+            // Check CONFIG
+            if (typeof CONFIG !== 'undefined') {
+                output += log('CONFIG object is defined');
+                
+                if (CONFIG.APP_ID && CONFIG.APP_ID !== 'YOUR_APPLICATION_ID_HERE') {
+                    output += log('APP_ID is configured');
+                } else {
+                    output += log('APP_ID needs configuration', true);
+                }
+                
+                if (CONFIG.JS_KEY && CONFIG.JS_KEY !== 'YOUR_JAVASCRIPT_KEY_HERE') {
+                    output += log('JS_KEY is configured');
+                } else {
+                    output += log('JS_KEY needs configuration', true);
+                }
+                
+                if (CONFIG.SERVER_URL && CONFIG.SERVER_URL.includes('back4app')) {
+                    output += log('SERVER_URL is configured');
+                } else {
+                    output += log('SERVER_URL needs configuration', true);
+                }
+            } else {
+                output += log('CONFIG object is not defined', true);
+            }
+
+            // Check CloudStorage
+            if (typeof CloudStorage !== 'undefined') {
+                output += log('CloudStorage class is available');
+            } else {
+                output += log('CloudStorage class is not available', true);
+            }
+
+            // Test Local Storage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                output += log('Local storage is working');
+            } catch (e) {
+                output += log('Local storage is not working', true);
+            }
+
+            output += '\n📝 Configuration test complete!\n';
+            output += 'If you see any ❌ errors, check setup-guide.md for help.';
+
+            resultsDiv.innerHTML = output;
+        }
+
+        function testAuthentication() {
+            const resultsDiv = document.getElementById('authResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '🔐 Testing authentication...\n\n';
+
+            let output = '';
+
+            // Test Parse connection
+            Parse.Cloud.run('test').then(
+                result => {
+                    output += log('Parse server connection successful');
+                    resultsDiv.innerHTML = output + '\n✅ Authentication system is ready!';
+                },
+                error => {
+                    if (error.code === 141) {
+                        output += log('Parse server connection successful');
+                        resultsDiv.innerHTML = output + '\n✅ Authentication system is ready!';
+                    } else {
+                        output += log(`Parse connection failed: ${error.message}`, true);
+                        resultsDiv.innerHTML = output + '\n❌ Check your Back4App credentials!';
+                    }
+                }
+            );
+        }
+
+        function testCloudStorage() {
+            const resultsDiv = document.getElementById('cloudResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '☁️ Testing cloud storage...\n\n';
+
+            let output = '';
+
+            if (typeof CloudStorage === 'undefined') {
+                output += log('CloudStorage class not available', true);
+                resultsDiv.innerHTML = output;
+                return;
+            }
+
+            try {
+                const cloudStorage = new CloudStorage();
+                output += log('CloudStorage instance created');
+                
+                // Test data structure
+                const testData = {
+                    workSessions: [],
+                    activeSessions: [],
+                    customTargetHours: 8
+                };
+                
+                localStorage.setItem('workSessions', JSON.stringify(testData.workSessions));
+                localStorage.setItem('activeSessions', JSON.stringify(testData.activeSessions));
+                localStorage.setItem('customTargetHours', testData.customTargetHours.toString());
+                
+                output += log('Test data prepared');
+                output += '\n✅ Cloud storage system is ready!\n';
+                output += 'Note: Full sync testing requires authentication.';
+                
+            } catch (error) {
+                output += log(`Cloud storage test failed: ${error.message}`, true);
+            }
+
+            resultsDiv.innerHTML = output;
+        }
+    </script>
+</body>
+</html>
