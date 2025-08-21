@@ -19,6 +19,8 @@ class WorkTimeTracker {
 	}
 
 	async performAuthCheck() {
+		this.updateMainDebug('Starting auth check...');
+		
 		try {
 			console.log('Performing authentication check...');
 
@@ -27,12 +29,14 @@ class WorkTimeTracker {
 			const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
 			
 			if (wasRedirecting) {
+				this.updateMainDebug('Processing redirect...');
 				const now = Date.now();
 				const timestamp = parseInt(redirectTimestamp) || 0;
 				
 				// Only clear if redirect was recent (within last 30 seconds)
 				if (now - timestamp < 30000) {
 					console.log('Successful redirect detected, clearing flags');
+					this.updateMainDebug('Successful redirect - clearing flags');
 					sessionStorage.removeItem('authRedirectInProgress');
 					sessionStorage.removeItem('authRedirectTimestamp');
 				}
@@ -41,6 +45,7 @@ class WorkTimeTracker {
 			const isAuth = await this.checkAuthentication();
 			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
+				this.updateMainDebug('Auth failed - redirecting to login');
 				
 				// Prevent multiple redirects with timestamp check
 				const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
@@ -54,17 +59,21 @@ class WorkTimeTracker {
 					window.location.href = 'login.html?from=main-app';
 				} else {
 					console.log('Recent redirect attempt detected, avoiding duplicate redirect');
+					this.updateMainDebug('Avoiding duplicate redirect');
 				}
 				return;
 			}
 
 			console.log('Authentication successful, initializing app');
+			this.updateMainDebug('Auth successful - initializing app');
 			
 			// Initialize the app
 			await this.initializeApp();
 			
 		} catch (error) {
 			console.error('Error during authentication check:', error);
+			this.updateMainDebug(`Auth error: ${error.message}`);
+			
 			// On any error, redirect to login with error flag (but check for recent redirects)
 			const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
 			const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
@@ -229,18 +238,23 @@ class WorkTimeTracker {
 	}
 
 	async checkAuthentication() {
+		this.updateMainDebug('Checking Parse initialization...');
+		
 		try {
 			// Check if Parse is initialized
 			if (typeof Parse === 'undefined') {
 				console.error('Parse is not defined - config may not be loaded');
+				this.updateMainDebug('ERROR: Parse not defined');
 				return false;
 			}
 
-			// Give Parse more time to initialize fully
-			await new Promise(resolve => setTimeout(resolve, 300));
+			// Give Parse more time to initialize fully and process any recent login
+			this.updateMainDebug('Waiting for Parse to fully initialize...');
+			await new Promise(resolve => setTimeout(resolve, 500));
 
 			const currentUser = Parse.User.current();
 			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
+			this.updateMainDebug(currentUser ? `User found: ${currentUser.get('email') || 'Unknown'}` : 'No user found');
 			
 			if (!currentUser) {
 				console.log('No current user found');
@@ -251,17 +265,21 @@ class WorkTimeTracker {
 			const sessionToken = currentUser.getSessionToken();
 			if (!sessionToken) {
 				console.log('No session token found, user session may be invalid');
+				this.updateMainDebug('ERROR: No session token');
 				return false;
 			}
 
 			// Verify session by fetching user from server to avoid stale sessions
 			try {
 				console.log('Verifying session with server...');
+				this.updateMainDebug('Verifying session with server...');
 				await currentUser.fetch();
 				console.log('Authentication check passed (server verified)');
+				this.updateMainDebug('✅ Session verified - user authenticated');
 				return true;
 			} catch (e) {
 				console.warn('Session fetch failed, logging out user', e);
+				this.updateMainDebug(`Session verification failed: ${e.message}`);
 				try {
 					await Parse.User.logOut();
 				} catch (logoutError) {
@@ -271,7 +289,16 @@ class WorkTimeTracker {
 			}
 		} catch (error) {
 			console.error('Authentication check error:', error);
+			this.updateMainDebug(`Auth check error: ${error.message}`);
 			return false;
+		}
+	}
+
+	updateMainDebug(message) {
+		const debugElement = document.getElementById('mainDebugInfo');
+		if (debugElement) {
+			const timestamp = new Date().toLocaleTimeString();
+			debugElement.innerHTML = `${timestamp}: ${message}`;
 		}
 	}
 
