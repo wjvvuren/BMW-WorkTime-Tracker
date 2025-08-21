@@ -178,21 +178,20 @@ class CloudStorage {
         if (this.syncInProgress) return;
         
         try {
-            // Save current data to cloud
-            await this.saveToCloud();
+            this.updateSyncStatus('syncing');
             
-            // Then load any updates from cloud
-            await this.loadFromCloud();
-            
-            // Trigger UI update in main app
-            if (window.workTimeTracker && window.workTimeTracker.updateDisplay) {
+            // Trigger manual sync in the main app if it's loaded
+            if (window.workTimeTracker && window.workTimeTracker.loadFromCloud) {
+                await window.workTimeTracker.loadFromCloud();
                 window.workTimeTracker.updateDisplay();
+                this.showSuccess('Data synchronized from cloud!');
+            } else {
+                this.showError('App not loaded yet');
             }
-
-            this.showSuccess('Data synchronized!');
 
         } catch (error) {
             console.error('Sync error:', error);
+            this.updateSyncStatus('error');
             this.showError('Sync failed. Please try again.');
         }
     }

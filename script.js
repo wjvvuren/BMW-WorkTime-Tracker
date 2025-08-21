@@ -14,27 +14,147 @@ class WorkTimeTracker {
 			return;
 		}
 
-		// Initialize cloud storage
+		// Initialize cloud storage first
 		this.cloudStorage = window.cloudStorage;
 		
-		// Data
-		this.sessions = JSON.parse(localStorage.getItem('workSessions') || '[]');
-		this.activeSessions = JSON.parse(localStorage.getItem('activeSessions') || '[]');
-		this.customTargetHours = parseFloat(localStorage.getItem('customTargetHours') || '0');
+		// Data will be loaded from cloud, not localStorage
+		this.sessions = [];
+		this.activeSessions = [];
+		this.customTargetHours = 0;
 		this.maxHoursPerDay = 10;
 		this.mandatoryLunchHours = 5;
 		this.lunchDuration = 30; // minutes
 		this.userMenuVisible = false;
 		
+		// Initialize app
 		this.initElements();
 		this.bindEvents();
 		this.setupUserInterface();
-		this.cleanupOldActiveSessions();
-		this.updateDisplay();
-		this.startCloudSync();
 		
+		// Load data from cloud first, then start app
+		this.initializeFromCloud();
+	}
+
+	async initializeFromCloud() {
+		try {
+			console.log('Initializing app with cloud data...');
+			
+			// Load data from Back4App
+			await this.loadFromCloud();
+			
+			// Start app functionality
+			this.cleanupOldActiveSessions();
+			this.updateDisplay();
+			this.startPeriodicUpdates();
+			this.createParticles();
+			
+		} catch (error) {
+			console.error('Failed to initialize from cloud:', error);
+			this.showError('Failed to load data from cloud. Please refresh the page.');
+		}
+	}
+
+	async loadFromCloud() {
+		try {
+			const currentUser = Parse.User.current();
+			if (!currentUser) {
+				throw new Error('No authenticated user');
+			}
+
+			console.log('Loading data from Back4App...');
+			
+			// Query for user's work data
+			const WorkData = Parse.Object.extend('WorkData');
+			const query = new Parse.Query(WorkData);
+			query.equalTo('user', currentUser);
+			
+			const workData = await query.first();
+			
+			if (workData) {
+				// Load data from cloud
+				this.sessions = workData.get('sessions') || [];
+				this.activeSessions = workData.get('activeSessions') || [];
+				this.customTargetHours = workData.get('customTargetHours') || 0;
+				
+				console.log('Data loaded from cloud:', {
+					sessions: this.sessions.length,
+					activeSessions: this.activeSessions.length,
+					customTarget: this.customTargetHours
+				});
+			} else {
+				console.log('No existing cloud data found, starting fresh');
+				// Create initial cloud data record
+				await this.saveToCloud();
+			}
+			
+			return true;
+		} catch (error) {
+			console.error('Error loading from cloud:', error);
+			throw error;
+		}
+	}
+
+	async saveToCloud() {
+		try {
+			const currentUser = Parse.User.current();
+			if (!currentUser) {
+				console.warn('No authenticated user, cannot save to cloud');
+				return false;
+			}
+
+			console.log('Saving data to Back4App...');
+
+			// Find existing work data or create new
+			const WorkData = Parse.Object.extend('WorkData');
+			const query = new Parse.Query(WorkData);
+			query.equalTo('user', currentUser);
+			
+			let workData = await query.first();
+			
+			if (!workData) {
+				workData = new WorkData();
+				workData.set('user', currentUser);
+			}
+
+			// Save current data to cloud
+			workData.set('sessions', this.sessions);
+			workData.set('activeSessions', this.activeSessions);
+			workData.set('customTargetHours', this.customTargetHours);
+			workData.set('lastModified', new Date());
+
+			await workData.save();
+			
+			console.log('Data saved to cloud successfully');
+			
+			// Update sync status
+			if (this.cloudStorage) {
+				this.cloudStorage.updateSyncStatus('synced');
+			}
+			
+			return true;
+		} catch (error) {
+			console.error('Error saving to cloud:', error);
+			if (this.cloudStorage) {
+				this.cloudStorage.updateSyncStatus('error');
+			}
+			return false;
+		}
+	}
+
+	startPeriodicUpdates() {
+		// Update display every second for active session timers
 		setInterval(() => this.updateDisplay(), 1000);
-		this.createParticles();
+		
+		// Auto-save to cloud every 30 seconds if there are changes
+		setInterval(() => this.autoSaveToCloud(), 30000);
+	}
+
+	async autoSaveToCloud() {
+		// Only save if there are active sessions or recent changes
+		if (this.activeSessions.length > 0 || this.hasRecentChanges) {
+			await this.saveToCloud();
+			this.hasRecentChanges = false;
+		}
 	}
 
 	checkAuthentication() {
@@ -54,58 +174,15 @@ class WorkTimeTracker {
 		}
 	}
 
+	// Remove the old localStorage-based sync methods
 	startCloudSync() {
-		if (this.cloudStorage) {
-			// Set up sync status callbacks
-			this.cloudStorage.onSyncStart = () => {
-				this.updateSyncStatus('syncing');
-			};
-			
-			this.cloudStorage.onSyncSuccess = () => {
-				this.updateSyncStatus('synced');
-				// Reload data from localStorage in case it was updated from cloud
-				this.reloadDataFromStorage();
-			};
-			
-			this.cloudStorage.onSyncError = (error) => {
-				console.error('Sync error:', error);
-				this.updateSyncStatus('error', 'Sync failed');
-			};
-			
-			// Initial sync
-			this.cloudStorage.syncFromCloud().then(() => {
-				this.reloadDataFromStorage();
-				this.updateDisplay();
-				this.cloudStorage.syncToCloud();
-			});
-			
-			// Set up periodic sync
-			setInterval(() => {
-				this.cloudStorage.syncToCloud();
-			}, 30000); // Sync every 30 seconds
-		} else {
-			// No cloud storage available
-			this.updateSyncStatus('error', 'Cloud storage unavailable');
-		}
+		// This is now handled by the direct cloud methods
+		console.log('Using direct cloud storage - no sync needed');
 	}
 
 	reloadDataFromStorage() {
-		try {
-			this.sessions = JSON.parse(localStorage.getItem('workSessions') || '[]');
-			this.activeSessions = JSON.parse(localStorage.getItem('activeSessions') || '[]');
-			this.customTargetHours = parseFloat(localStorage.getItem('customTargetHours') || '0');
-			
-			console.log('Data reloaded from storage:', {
-				sessions: this.sessions.length,
-				activeSessions: this.activeSessions.length,
-				customTarget: this.customTargetHours
-			});
-		} catch (error) {
-			console.error('Error reloading data from storage:', error);
-			this.sessions = [];
-			this.activeSessions = [];
-			this.customTargetHours = 0;
-		}
+		// Data is loaded directly from cloud, this method is deprecated
+		console.log('Data loaded directly from cloud - reloadDataFromStorage deprecated');
 	}
 
 	initElements() {
@@ -460,26 +537,38 @@ class WorkTimeTracker {
 			this.handleNewSession();
 		}
 	}
-	handleCheckOutOnly() {
+	async handleCheckOutOnly() {
 		const sessionId = parseInt(this.els.selectActiveSession.value);
 		const checkOutTime = this.els.checkOutTimeOnly.value;
 		const date = this.els.entryDate.value;
+		
 		if (!sessionId || !checkOutTime) return alert('Select an active session and check-out time.');
+		
 		const idx = this.activeSessions.findIndex(s => s.id === sessionId);
 		if (idx === -1) return alert('Session not found.');
+		
 		const session = this.activeSessions[idx];
 		const checkOutDateTime = new Date(`${date}T${checkOutTime}`);
+		
 		if (checkOutDateTime <= new Date(session.checkIn)) return alert('Check out must be after check in.');
+		
 		this.completeSession(session, checkOutDateTime);
 		session.isManualEntry = true;
+		
+		// Move from active to completed sessions
 		this.sessions.push(session);
 		this.activeSessions.splice(idx, 1);
-		this.saveToStorage();
-		this.saveActiveSessionsToStorage();
+		
+		// Save to cloud immediately
+		this.hasRecentChanges = true;
+		await this.saveToCloud();
+		
 		this.closeManualEntry();
 		this.updateDisplay();
+		
+		this.showSuccess('Session completed and saved to cloud');
 	}
-	handleNewSession() {
+	async handleNewSession() {
 		const date = this.els.entryDate.value;
 		const checkInTime = this.els.checkInTime.value;
 		const checkOutTime = this.els.checkOutTime.value;
@@ -504,9 +593,14 @@ class WorkTimeTracker {
 			};
 			console.log('Adding active session:', activeSession);
 			this.activeSessions.push(activeSession);
-			this.saveActiveSessionsToStorage();
+			
+			// Save to cloud immediately
+			this.hasRecentChanges = true;
+			await this.saveToCloud();
+			
 			this.closeManualEntry();
 			this.updateDisplay();
+			this.showSuccess('Active session started and saved to cloud');
 			return;
 		}
 		
@@ -540,8 +634,10 @@ class WorkTimeTracker {
 		this.sessions.push(newSession);
 		this.sessions.sort((a, b) => new Date(a.checkIn) - new Date(b.checkIn));
 		
-		// Force save and verify
-		this.saveToStorage();
+		// Save to cloud immediately
+		this.hasRecentChanges = true;
+		await this.saveToCloud();
+		
 		this.closeManualEntry();
 		this.updateDisplay();
 		
@@ -662,23 +758,34 @@ class WorkTimeTracker {
 		document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
 	}
 
-	clearCustomTargetValue() {
+	async clearCustomTargetValue() {
 		this.customTargetHours = 0;
-		localStorage.removeItem('customTargetHours');
+		
+		// Save to cloud immediately
+		this.hasRecentChanges = true;
+		await this.saveToCloud();
+		
 		this.closeCustomTargetModal();
 		this.updateDisplay();
+		this.showSuccess('Custom target cleared');
 	}
 
-	saveCustomTargetValue() {
+	async saveCustomTargetValue() {
 		const hours = parseFloat(this.els.customTargetHours.value);
 		if (isNaN(hours) || hours <= 0 || hours > 16) {
 			alert('Please enter a valid target between 1 and 16 hours.');
 			return;
 		}
+		
 		this.customTargetHours = hours;
-		localStorage.setItem('customTargetHours', hours.toString());
+		
+		// Save to cloud immediately
+		this.hasRecentChanges = true;
+		await this.saveToCloud();
+		
 		this.closeCustomTargetModal();
 		this.updateDisplay();
+		this.showSuccess(`Custom target set to ${hours} hours`);
 	}
 
 	updateCustomTargetProgress(billableSeconds) {
@@ -905,45 +1012,27 @@ class WorkTimeTracker {
 			this.els.lunchAlert.style.display = 'none';
 		}, 5000);
 	}
-	resetDay() {
+	async resetDay() {
 		if (confirm('Are you sure you want to reset today\'s data? This cannot be undone.')) {
 			const today = new Date().toDateString();
+			const initialSessionCount = this.sessions.length;
+			const initialActiveCount = this.activeSessions.length;
+			
 			this.sessions = this.sessions.filter(s => new Date(s.checkIn).toDateString() !== today);
 			this.activeSessions = this.activeSessions.filter(s => new Date(s.checkIn).toDateString() !== today);
-			this.saveToStorage();
-			this.saveActiveSessionsToStorage();
+			
+			// Save to cloud immediately
+			this.hasRecentChanges = true;
+			await this.saveToCloud();
+			
 			this.updateDisplay();
-		}
-	}
-	saveToStorage() {
-		try {
-			localStorage.setItem('workSessions', JSON.stringify(this.sessions));
-			console.log('Sessions saved to localStorage:', this.sessions.length, 'sessions');
 			
-			// Trigger cloud sync if available
-			if (this.cloudStorage) {
-				this.cloudStorage.scheduleSync();
-			}
-		} catch (error) {
-			console.error('Error saving sessions to localStorage:', error);
-			this.showError('Failed to save session data locally');
+			const removedSessions = (initialSessionCount - this.sessions.length) + (initialActiveCount - this.activeSessions.length);
+			this.showSuccess(`Reset complete - removed ${removedSessions} session(s) from today`);
 		}
 	}
-	
-	saveActiveSessionsToStorage() {
-		try {
-			localStorage.setItem('activeSessions', JSON.stringify(this.activeSessions));
-			console.log('Active sessions saved to localStorage:', this.activeSessions.length, 'active sessions');
-			
-			// Trigger cloud sync if available
-			if (this.cloudStorage) {
-				this.cloudStorage.scheduleSync();
-			}
-		} catch (error) {
-			console.error('Error saving active sessions to localStorage:', error);
-			this.showError('Failed to save active session data locally');
-		}
-	}
+
+	// Old localStorage methods removed - now using direct cloud storage
 
 	// --- BMW Particles and Animations ---
 	createParticles() {
@@ -1138,5 +1227,6 @@ class WorkTimeTracker {
 // Initialize
 let tracker;
 document.addEventListener('DOMContentLoaded', () => {
-	tracker = new WorkTimeTracker();
+	// Make app globally accessible for cloud sync
+	window.workTimeTracker = new WorkTimeTracker();
 });
