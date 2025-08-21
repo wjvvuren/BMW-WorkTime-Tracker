@@ -81,8 +81,8 @@
                     updateStatus('Verifying session...');
                     try {
                         await currentUser.fetch();
-                        updateStatus('Authentication successful, loading app...');
-                        window.location.href = 'main-app.html?from=loading';
+                        updateStatus('Authentication successful, entering app...');
+                        window.location.href = 'index.html?from=loading';
                     } catch (error) {
                         updateStatus('Session expired, redirecting to login...');
                         await Parse.User.logOut();

@@ -223,7 +223,7 @@ Page: ${window.location.pathname}`);
                     sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
                     
                     setTimeout(() => {
-                        window.location.href = 'main-app.html';
+                        window.location.href = 'loading-screen.html';
                     }, 200);
                     
                 } catch (sessionError) {
@@ -305,7 +305,7 @@ Page: ${window.location.pathname}`);
             sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
             
             setTimeout(() => {
-                window.location.href = 'main-app.html';
+                window.location.href = 'loading-screen.html';
             }, 400);
 
         } catch (error) {
