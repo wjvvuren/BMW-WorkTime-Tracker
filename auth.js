@@ -14,6 +14,9 @@ class AuthSystem {
         // Add debug info
         this.addDebugInfo();
         
+        // Add quick debug display
+        this.updateQuickDebug('Initializing...');
+        
         this.checkCurrentUser();
     }
     
@@ -95,6 +98,14 @@ Page: ${window.location.pathname}`);
         document.body.appendChild(logoutBtn);
     }
 
+    updateQuickDebug(message) {
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+            const timestamp = new Date().toLocaleTimeString();
+            debugInfo.innerHTML = `${timestamp}: ${message}`;
+        }
+    }
+
     bindEvents() {
         // Form submissions
         document.getElementById('loginFormElement').addEventListener('submit', (e) => {
@@ -137,12 +148,15 @@ Page: ${window.location.pathname}`);
     }
 
     async checkCurrentUser() {
+        this.updateQuickDebug('Checking current user...');
+        
         try {
             // Prevent infinite redirect loops by checking if we were redirected here intentionally
             const urlParams = new URLSearchParams(window.location.search);
             const from = urlParams.get('from');
             if (from) {
                 console.log('Redirected here with from=', from, '— staying on login page');
+                this.updateQuickDebug(`Redirected from ${from} - staying on login`);
                 // Clear any redirect flags since we're now on login page
                 sessionStorage.removeItem('authRedirectInProgress');
                 // Clean up the URL
@@ -163,26 +177,31 @@ Page: ${window.location.pathname}`);
                 // If redirect was set more than 10 seconds ago, clear it (likely stale)
                 if (now - timestamp > 10000) {
                     console.log('Clearing stale redirect flag');
+                    this.updateQuickDebug('Clearing stale redirect flag');
                     sessionStorage.removeItem('authRedirectInProgress');
                     sessionStorage.removeItem('authRedirectTimestamp');
                 } else {
                     console.log('Recent redirect in progress detected, staying on login page');
+                    this.updateQuickDebug(`Redirect in progress (${Math.round((now - timestamp) / 1000)}s ago)`);
                     return;
                 }
             }
             
             // Add a small delay to ensure Parse is fully initialized
+            this.updateQuickDebug('Initializing Parse...');
             await new Promise(resolve => setTimeout(resolve, 300));
             
             this.currentUser = Parse.User.current();
             console.log('Current user check:', this.currentUser ? 'User logged in' : 'No user');
             
             if (this.currentUser) {
+                this.updateQuickDebug('User found - verifying session...');
                 // Verify the session is still valid
                 try {
                     console.log('Verifying user session...');
                     await this.currentUser.fetch();
                     console.log('User session verified, redirecting to main app');
+                    this.updateQuickDebug('Session valid - redirecting to app...');
                     
                     // Set flag with timestamp to prevent circular redirects
                     sessionStorage.setItem('authRedirectInProgress', 'true');
@@ -194,15 +213,19 @@ Page: ${window.location.pathname}`);
                     
                 } catch (sessionError) {
                     console.log('User session expired, staying on login page');
+                    this.updateQuickDebug('Session expired - please login');
                     // Session expired, log out and stay on login
                     await Parse.User.logOut();
                     this.currentUser = null;
                     sessionStorage.removeItem('authRedirectInProgress');
                     sessionStorage.removeItem('authRedirectTimestamp');
                 }
+            } else {
+                this.updateQuickDebug('No user logged in - ready for login');
             }
         } catch (error) {
             console.log('Error checking current user:', error);
+            this.updateQuickDebug(`Error: ${error.message}`);
             this.currentUser = null;
             sessionStorage.removeItem('authRedirectInProgress');
             sessionStorage.removeItem('authRedirectTimestamp');
@@ -243,6 +266,7 @@ Page: ${window.location.pathname}`);
         }
 
         this.setLoading('loginBtn', true);
+        this.updateQuickDebug('Attempting login...');
 
         try {
             // Clear any previous redirect flags
@@ -252,6 +276,7 @@ Page: ${window.location.pathname}`);
             console.log('Attempting login for:', email);
             const user = await Parse.User.logIn(email, password);
             console.log('Login successful for user:', user.get('email'));
+            this.updateQuickDebug('Login successful - redirecting...');
             
             // Store remember me preference
             if (rememberMe) {
@@ -270,6 +295,7 @@ Page: ${window.location.pathname}`);
 
         } catch (error) {
             console.error('Login error:', error);
+            this.updateQuickDebug(`Login failed: ${error.message}`);
             sessionStorage.removeItem('authRedirectInProgress');
             sessionStorage.removeItem('authRedirectTimestamp');
             this.showMessage(this.getErrorMessage(error), 'error');

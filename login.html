@@ -21,6 +21,12 @@
                 </div>
                 <h1>BMW WorkTime Tracker</h1>
                 <p>Professional Time Management</p>
+                <!-- Quick Debug Info -->
+                <div id="quickDebug" style="font-size: 12px; color: #666; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
+                    <strong>Debug Info:</strong><br>
+                    <span id="debugInfo">Loading...</span><br>
+                    <button onclick="clearAllData()" style="margin-top: 5px; padding: 5px 10px; font-size: 10px; background: #dc3545; color: white; border: none; border-radius: 3px; cursor: pointer;">Clear All Data</button>
+                </div>
             </div>
 
             <!-- Login Form -->
@@ -164,5 +170,18 @@
     <script src="config.js"></script>
     <script src="redirect-manager.js"></script>
     <script src="auth.js"></script>
+    
+    <script>
+        function clearAllData() {
+            localStorage.clear();
+            sessionStorage.clear();
+            if (document.getElementById('debugInfo')) {
+                document.getElementById('debugInfo').innerHTML = 'All data cleared - page will reload';
+            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    </script>
 </body>
 </html>
