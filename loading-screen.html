@@ -63,11 +63,35 @@
     <script src="config.js"></script>
     <script>
         let debugInfo = document.getElementById('debugInfo');
+        let redirected = false;
+        let startTime = Date.now();
         
         function updateStatus(message) {
             debugInfo.textContent = message;
             console.log('Loading:', message);
         }
+        
+        function safeReplace(url) {
+            if (redirected) return;
+            redirected = true;
+            console.log('Navigating to:', url);
+            window.location.replace(url);
+        }
+        
+        // Global error handler for visibility
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('Global error:', message, 'at', source, lineno, colno, error);
+            updateStatus('Error: ' + message);
+        };
+        
+        // Fallback: if still here after 5s, go to login
+        setTimeout(() => {
+            if (!redirected) {
+                updateStatus('Timeout waiting for auth. Redirecting to login...');
+                const cb = Date.now();
+                safeReplace('login.html?from=loading&reason=timeout&cb=' + cb);
+            }
+        }, 5000);
         
         async function initializeAuth() {
             try {
@@ -82,27 +106,27 @@
                     try {
                         await currentUser.fetch();
                         updateStatus('Authentication successful, entering app...');
-                        window.location.href = 'main-app.html?from=loading';
+                        safeReplace('main-app.html?from=loading');
                     } catch (error) {
                         updateStatus('Session expired, redirecting to login...');
                         await Parse.User.logOut();
                         setTimeout(() => {
-                            window.location.href = 'login.html?from=loading&reason=session-expired';
-                        }, 1000);
+                            safeReplace('login.html?from=loading&reason=session-expired');
+                        }, 500);
                     }
                 } else {
                     updateStatus('No user session found, redirecting to login...');
                     setTimeout(() => {
-                        window.location.href = 'login.html?from=loading&reason=no-session';
-                    }, 1000);
+                        safeReplace('login.html?from=loading&reason=no-session');
+                    }, 500);
                 }
                 
             } catch (error) {
                 console.error('Initialization error:', error);
                 updateStatus('Error: ' + error.message);
                 setTimeout(() => {
-                    window.location.href = 'login.html?from=loading&error=init-failed';
-                }, 2000);
+                    safeReplace('login.html?from=loading&error=init-failed');
+                }, 800);
             }
         }
         
