@@ -37,9 +37,13 @@ body {
 
 /* Header Styles */
 .header {
-    display: flex;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas: 
+        "logo title controls"
+        "date date date";
     align-items: center;
-    justify-content: space-between;
+    gap: 20px;
     margin-bottom: 30px;
     background: var(--white);
     padding: 20px 30px;
@@ -49,13 +53,33 @@ body {
     position: relative;
 }
 
+.bmw-logo {
+    grid-area: logo;
+    justify-self: start;
+}
+
+.title {
+    grid-area: title;
+    justify-self: center;
+    text-align: center;
+    margin: 0;
+}
+
 .header-controls {
-    position: absolute;
-    top: 20px;
-    right: 20px;
+    grid-area: controls;
+    justify-self: end;
     display: flex;
     align-items: center;
     gap: 15px;
+}
+
+.date-display {
+    grid-area: date;
+    justify-self: center;
+    font-size: 1.1rem;
+    color: var(--bmw-dark-gray);
+    font-weight: 500;
+    margin-top: 10px;
 }
 
 .user-info {
@@ -240,13 +264,7 @@ body {
     font-weight: 300;
     color: var(--bmw-dark-blue);
     text-align: center;
-    flex: 1;
-}
-
-.date-display {
-    font-size: 1.1rem;
-    color: var(--bmw-dark-gray);
-    font-weight: 500;
+    margin: 0;
 }
 
 /* Main Content */
@@ -1415,6 +1433,74 @@ body {
     to { transform: rotate(360deg); }
 }
 
+/* Notification System */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    border-radius: 10px;
+    font-weight: 500;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    animation: notificationSlideIn 0.3s ease-out;
+    max-width: 400px;
+}
+
+.notification.success {
+    background: var(--success-green);
+    color: white;
+}
+
+.notification.error {
+    background: var(--danger-red);
+    color: white;
+}
+
+.notification.info {
+    background: var(--bmw-blue);
+    color: white;
+}
+
+.notification-message {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.notification-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes notificationSlideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
 /* Interactive Animation Keyframes */
 @keyframes sparkFly {
     from {
@@ -1446,16 +1532,23 @@ body {
 /* Responsive Design */
 @media (max-width: 768px) {
     .header {
-        flex-direction: column;
-        gap: 15px;
+        grid-template-columns: 1fr;
+        grid-template-areas: 
+            "controls"
+            "logo"
+            "title"
+            "date";
         text-align: center;
-        padding: 30px 20px;
+        padding: 20px;
+        gap: 15px;
     }
     
     .header-controls {
-        position: static;
-        justify-content: center;
-        margin-top: 15px;
+        justify-self: center;
+    }
+    
+    .bmw-logo {
+        justify-self: center;
     }
     
     .user-menu {

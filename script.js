@@ -90,9 +90,22 @@ class WorkTimeTracker {
 	}
 
 	reloadDataFromStorage() {
-		this.sessions = JSON.parse(localStorage.getItem('workSessions') || '[]');
-		this.activeSessions = JSON.parse(localStorage.getItem('activeSessions') || '[]');
-		this.customTargetHours = parseFloat(localStorage.getItem('customTargetHours') || '0');
+		try {
+			this.sessions = JSON.parse(localStorage.getItem('workSessions') || '[]');
+			this.activeSessions = JSON.parse(localStorage.getItem('activeSessions') || '[]');
+			this.customTargetHours = parseFloat(localStorage.getItem('customTargetHours') || '0');
+			
+			console.log('Data reloaded from storage:', {
+				sessions: this.sessions.length,
+				activeSessions: this.activeSessions.length,
+				customTarget: this.customTargetHours
+			});
+		} catch (error) {
+			console.error('Error reloading data from storage:', error);
+			this.sessions = [];
+			this.activeSessions = [];
+			this.customTargetHours = 0;
+		}
 	}
 
 	initElements() {
@@ -472,8 +485,14 @@ class WorkTimeTracker {
 		const checkOutTime = this.els.checkOutTime.value;
 		const sessionType = this.els.sessionType.value;
 		const sessionDuration = parseFloat(this.els.sessionDuration.value);
+		
+		console.log('Creating new session with:', {
+			date, checkInTime, checkOutTime, sessionType, sessionDuration
+		});
+		
 		if (!date || !checkInTime) return alert('Fill in date and check-in time.');
 		const checkInDateTime = new Date(`${date}T${checkInTime}`);
+		
 		if (!checkOutTime && !sessionDuration) {
 			// Create active session
 			const activeSession = {
@@ -483,12 +502,14 @@ class WorkTimeTracker {
 				isActive: true,
 				isManualEntry: true
 			};
+			console.log('Adding active session:', activeSession);
 			this.activeSessions.push(activeSession);
 			this.saveActiveSessionsToStorage();
 			this.closeManualEntry();
 			this.updateDisplay();
 			return;
 		}
+		
 		// Completed session
 		let checkOutDateTime, duration;
 		if (checkOutTime) {
@@ -500,6 +521,7 @@ class WorkTimeTracker {
 			duration = sessionDuration * 3600;
 			checkOutDateTime = new Date(checkInDateTime.getTime() + (duration * 1000));
 		}
+		
 		const newSession = {
 			id: Date.now(),
 			checkIn: checkInDateTime,
@@ -509,14 +531,62 @@ class WorkTimeTracker {
 			isManualEntry: true,
 			isActive: false
 		};
+		
 		if (duration / 3600 > this.mandatoryLunchHours && sessionType === 'work') {
 			newSession.hasAutoLunch = true;
 		}
+		
+		console.log('Adding completed session:', newSession);
 		this.sessions.push(newSession);
 		this.sessions.sort((a, b) => new Date(a.checkIn) - new Date(b.checkIn));
+		
+		// Force save and verify
 		this.saveToStorage();
 		this.closeManualEntry();
 		this.updateDisplay();
+		
+		// Show confirmation
+		this.showSuccess(`Session added: ${this.formatTime(duration)} on ${date}`);
+	}
+
+	// --- Utility Functions ---
+	showSuccess(message) {
+		this.showNotification(message, 'success');
+	}
+	
+	showError(message) {
+		this.showNotification(message, 'error');
+	}
+	
+	showNotification(message, type = 'info') {
+		// Remove any existing notifications
+		const existingNotification = document.querySelector('.notification');
+		if (existingNotification) {
+			existingNotification.remove();
+		}
+		
+		// Create notification element
+		const notification = document.createElement('div');
+		notification.className = `notification ${type}`;
+		notification.innerHTML = `
+			<span class="notification-message">${message}</span>
+			<button class="notification-close">&times;</button>
+		`;
+		
+		// Add to body
+		document.body.appendChild(notification);
+		
+		// Auto-remove after 5 seconds
+		setTimeout(() => {
+			if (notification.parentNode) {
+				notification.remove();
+			}
+		}, 5000);
+		
+		// Manual close
+		notification.querySelector('.notification-close').addEventListener('click', () => {
+			notification.remove();
+		});
 	}
 
 	// --- Time Calculations ---
@@ -846,18 +916,32 @@ class WorkTimeTracker {
 		}
 	}
 	saveToStorage() {
-		localStorage.setItem('workSessions', JSON.stringify(this.sessions));
-		// Trigger cloud sync if available
-		if (this.cloudStorage) {
-			this.cloudStorage.scheduleSync();
+		try {
+			localStorage.setItem('workSessions', JSON.stringify(this.sessions));
+			console.log('Sessions saved to localStorage:', this.sessions.length, 'sessions');
+			
+			// Trigger cloud sync if available
+			if (this.cloudStorage) {
+				this.cloudStorage.scheduleSync();
+			}
+		} catch (error) {
+			console.error('Error saving sessions to localStorage:', error);
+			this.showError('Failed to save session data locally');
 		}
 	}
 	
 	saveActiveSessionsToStorage() {
-		localStorage.setItem('activeSessions', JSON.stringify(this.activeSessions));
-		// Trigger cloud sync if available
-		if (this.cloudStorage) {
-			this.cloudStorage.scheduleSync();
+		try {
+			localStorage.setItem('activeSessions', JSON.stringify(this.activeSessions));
+			console.log('Active sessions saved to localStorage:', this.activeSessions.length, 'active sessions');
+			
+			// Trigger cloud sync if available
+			if (this.cloudStorage) {
+				this.cloudStorage.scheduleSync();
+			}
+		} catch (error) {
+			console.error('Error saving active sessions to localStorage:', error);
+			this.showError('Failed to save active session data locally');
 		}
 	}
 
