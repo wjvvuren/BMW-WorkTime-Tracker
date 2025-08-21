@@ -15,6 +15,10 @@ try {
     Parse.initialize(CONFIG.APP_ID, CONFIG.JS_KEY);
     Parse.serverURL = CONFIG.SERVER_URL;
     console.log('Parse initialized successfully');
+    
+    // Add version info for debugging cache issues
+    console.log(`BMW WorkTime Tracker - Version: ${new Date().toISOString()}`);
+    
 } catch (error) {
     console.error('Failed to initialize Parse:', error);
 }

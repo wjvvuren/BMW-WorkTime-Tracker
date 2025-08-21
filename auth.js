@@ -145,18 +145,34 @@ Page: ${window.location.pathname}`);
                 console.log('Redirected here with from=', from, '— staying on login page');
                 // Clear any redirect flags since we're now on login page
                 sessionStorage.removeItem('authRedirectInProgress');
+                // Clean up the URL
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                }
                 return;
             }
             
-            // Check if we're in a redirect loop
-            if (sessionStorage.getItem('authRedirectInProgress') === 'true') {
-                console.log('Redirect in progress detected, staying on login page');
-                sessionStorage.removeItem('authRedirectInProgress');
-                return;
+            // Check if we're in a redirect loop - but be more strict about timing
+            const redirectFlag = sessionStorage.getItem('authRedirectInProgress');
+            const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+            
+            if (redirectFlag === 'true') {
+                const now = Date.now();
+                const timestamp = parseInt(redirectTimestamp) || 0;
+                
+                // If redirect was set more than 10 seconds ago, clear it (likely stale)
+                if (now - timestamp > 10000) {
+                    console.log('Clearing stale redirect flag');
+                    sessionStorage.removeItem('authRedirectInProgress');
+                    sessionStorage.removeItem('authRedirectTimestamp');
+                } else {
+                    console.log('Recent redirect in progress detected, staying on login page');
+                    return;
+                }
             }
             
             // Add a small delay to ensure Parse is fully initialized
-            await new Promise(resolve => setTimeout(resolve, 200));
+            await new Promise(resolve => setTimeout(resolve, 300));
             
             this.currentUser = Parse.User.current();
             console.log('Current user check:', this.currentUser ? 'User logged in' : 'No user');
@@ -168,11 +184,13 @@ Page: ${window.location.pathname}`);
                     await this.currentUser.fetch();
                     console.log('User session verified, redirecting to main app');
                     
-                    // Set flag to prevent circular redirects and redirect after a short delay
+                    // Set flag with timestamp to prevent circular redirects
                     sessionStorage.setItem('authRedirectInProgress', 'true');
+                    sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
+                    
                     setTimeout(() => {
                         window.location.href = 'main-app.html';
-                    }, 100);
+                    }, 200);
                     
                 } catch (sessionError) {
                     console.log('User session expired, staying on login page');
@@ -180,12 +198,14 @@ Page: ${window.location.pathname}`);
                     await Parse.User.logOut();
                     this.currentUser = null;
                     sessionStorage.removeItem('authRedirectInProgress');
+                    sessionStorage.removeItem('authRedirectTimestamp');
                 }
             }
         } catch (error) {
             console.log('Error checking current user:', error);
             this.currentUser = null;
             sessionStorage.removeItem('authRedirectInProgress');
+            sessionStorage.removeItem('authRedirectTimestamp');
         }
     }
 
@@ -227,6 +247,7 @@ Page: ${window.location.pathname}`);
         try {
             // Clear any previous redirect flags
             sessionStorage.removeItem('authRedirectInProgress');
+            sessionStorage.removeItem('authRedirectTimestamp');
             
             console.log('Attempting login for:', email);
             const user = await Parse.User.logIn(email, password);
@@ -239,15 +260,18 @@ Page: ${window.location.pathname}`);
 
             this.showMessage('Login successful! Redirecting...', 'success');
             
-            // Set redirect flag and redirect to main app
+            // Set redirect flag with timestamp and redirect to main app
             sessionStorage.setItem('authRedirectInProgress', 'true');
+            sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
+            
             setTimeout(() => {
                 window.location.href = 'main-app.html';
-            }, 1000);
+            }, 1500);
 
         } catch (error) {
             console.error('Login error:', error);
             sessionStorage.removeItem('authRedirectInProgress');
+            sessionStorage.removeItem('authRedirectTimestamp');
             this.showMessage(this.getErrorMessage(error), 'error');
         } finally {
             this.setLoading('loginBtn', false);

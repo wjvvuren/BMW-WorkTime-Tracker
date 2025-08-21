@@ -22,20 +22,38 @@ class WorkTimeTracker {
 		try {
 			console.log('Performing authentication check...');
 
-			// Clear redirect flag if we made it to main app
+			// Clear redirect flag if we made it to main app successfully  
 			const wasRedirecting = sessionStorage.getItem('authRedirectInProgress') === 'true';
+			const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+			
 			if (wasRedirecting) {
-				console.log('Successful redirect detected, clearing flag');
-				sessionStorage.removeItem('authRedirectInProgress');
+				const now = Date.now();
+				const timestamp = parseInt(redirectTimestamp) || 0;
+				
+				// Only clear if redirect was recent (within last 30 seconds)
+				if (now - timestamp < 30000) {
+					console.log('Successful redirect detected, clearing flags');
+					sessionStorage.removeItem('authRedirectInProgress');
+					sessionStorage.removeItem('authRedirectTimestamp');
+				}
 			}
 
 			const isAuth = await this.checkAuthentication();
 			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
-				// Prevent multiple redirects
-				if (!sessionStorage.getItem('authRedirectInProgress')) {
+				
+				// Prevent multiple redirects with timestamp check
+				const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
+				const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+				
+				if (existingRedirect !== 'true' || !existingTimestamp || 
+				    (Date.now() - parseInt(existingTimestamp)) > 10000) {
+					
 					sessionStorage.setItem('authRedirectInProgress', 'true');
+					sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
 					window.location.href = 'login.html?from=main-app';
+				} else {
+					console.log('Recent redirect attempt detected, avoiding duplicate redirect');
 				}
 				return;
 			}
@@ -47,9 +65,15 @@ class WorkTimeTracker {
 			
 		} catch (error) {
 			console.error('Error during authentication check:', error);
-			// On any error, redirect to login with error flag
-			if (!sessionStorage.getItem('authRedirectInProgress')) {
+			// On any error, redirect to login with error flag (but check for recent redirects)
+			const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
+			const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+			
+			if (existingRedirect !== 'true' || !existingTimestamp || 
+			    (Date.now() - parseInt(existingTimestamp)) > 10000) {
+				
 				sessionStorage.setItem('authRedirectInProgress', 'true');
+				sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
 				window.location.href = 'login.html?from=main-app&error=auth-failed';
 			}
 		}
