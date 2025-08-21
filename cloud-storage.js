@@ -87,11 +87,23 @@ class CloudStorage {
     async logout() {
         try {
             this.showLoading('Signing out...');
+            
+            // Clear any local data
+            localStorage.clear();
+            
+            // Log out from Parse
             await Parse.User.logOut();
+            
+            console.log('User logged out successfully');
             window.location.href = 'login.html';
+            
         } catch (error) {
             console.error('Logout error:', error);
             this.hideLoading();
+            
+            // Force redirect even if logout fails
+            localStorage.clear();
+            window.location.href = 'login.html';
         }
     }
 

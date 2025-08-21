@@ -158,8 +158,26 @@ class WorkTimeTracker {
 	}
 
 	checkAuthentication() {
-		const currentUser = Parse.User.current();
-		return currentUser !== null;
+		try {
+			const currentUser = Parse.User.current();
+			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
+			
+			if (!currentUser) {
+				return false;
+			}
+			
+			// Additional check - verify we have a valid session token
+			const sessionToken = currentUser.getSessionToken();
+			if (!sessionToken) {
+				console.log('No session token found, redirecting to login');
+				return false;
+			}
+			
+			return true;
+		} catch (error) {
+			console.error('Authentication check error:', error);
+			return false;
+		}
 	}
 
 	setupUserInterface() {

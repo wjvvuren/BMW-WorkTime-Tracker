@@ -7,7 +7,68 @@ class AuthSystem {
 
     init() {
         this.bindEvents();
+        
+        // Add debug info
+        this.addDebugInfo();
+        
         this.checkCurrentUser();
+    }
+    
+    addDebugInfo() {
+        // Add debug button for troubleshooting
+        const debugBtn = document.createElement('button');
+        debugBtn.textContent = 'Debug Auth Status';
+        debugBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #666;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+        `;
+        debugBtn.addEventListener('click', () => {
+            const currentUser = Parse.User.current();
+            const sessionToken = currentUser ? currentUser.getSessionToken() : null;
+            
+            alert(`Debug Info:
+User: ${currentUser ? currentUser.get('email') : 'None'}
+Session Token: ${sessionToken ? 'Present' : 'Missing'}
+Page: ${window.location.pathname}`);
+        });
+        document.body.appendChild(debugBtn);
+        
+        // Add force logout button for testing
+        const logoutBtn = document.createElement('button');
+        logoutBtn.textContent = 'Force Logout';
+        logoutBtn.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 150px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+        `;
+        logoutBtn.addEventListener('click', async () => {
+            try {
+                await Parse.User.logOut();
+                localStorage.clear();
+                alert('Forced logout complete');
+                window.location.reload();
+            } catch (error) {
+                alert('Force logout error: ' + error.message);
+            }
+        });
+        document.body.appendChild(logoutBtn);
     }
 
     bindEvents() {
@@ -53,13 +114,29 @@ class AuthSystem {
 
     async checkCurrentUser() {
         try {
+            // Add a small delay to ensure Parse is fully initialized
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
             this.currentUser = Parse.User.current();
+            console.log('Current user check:', this.currentUser ? 'User logged in' : 'No user');
+            
             if (this.currentUser) {
-                // User is already logged in, redirect to main app
-                window.location.href = 'main-app.html';
+                // Verify the session is still valid
+                try {
+                    await this.currentUser.fetch();
+                    console.log('User session verified, redirecting to main app');
+                    // User is already logged in and session is valid, redirect to main app
+                    window.location.href = 'main-app.html';
+                } catch (sessionError) {
+                    console.log('User session expired, staying on login page');
+                    // Session expired, log out and stay on login
+                    await Parse.User.logOut();
+                    this.currentUser = null;
+                }
             }
         } catch (error) {
-            console.log('No current user');
+            console.log('Error checking current user:', error);
+            this.currentUser = null;
         }
     }
 
