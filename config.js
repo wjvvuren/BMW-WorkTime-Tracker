@@ -10,9 +10,14 @@ const CONFIG = {
     SERVER_URL: 'https://parseapi.back4app.com/'
 };
 
-// Initialize Parse
-Parse.initialize(CONFIG.APP_ID, CONFIG.JS_KEY);
-Parse.serverURL = CONFIG.SERVER_URL;
+// Initialize Parse with error handling
+try {
+    Parse.initialize(CONFIG.APP_ID, CONFIG.JS_KEY);
+    Parse.serverURL = CONFIG.SERVER_URL;
+    console.log('Parse initialized successfully');
+} catch (error) {
+    console.error('Failed to initialize Parse:', error);
+}
 
 // Export for use in other files
 window.CONFIG = CONFIG;

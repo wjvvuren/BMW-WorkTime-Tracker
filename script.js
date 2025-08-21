@@ -8,32 +8,39 @@ class WorkTimeTracker {
 			return;
 		}
 
-		// Check for redirect loops
-		if (sessionStorage.getItem('authRedirectInProgress') === 'true') {
-			console.log('Potential redirect loop detected, clearing flag');
-			sessionStorage.removeItem('authRedirectInProgress');
+		// Wait for DOM to be fully loaded before starting
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', () => {
+				this.performAuthCheck();
+			});
+		} else {
+			this.performAuthCheck();
 		}
-
-		// Check authentication with more robust error handling
-		this.performAuthCheck();
 	}
 
 	async performAuthCheck() {
 		try {
 			console.log('Performing authentication check...');
 
+			// Clear redirect flag if we made it to main app
+			const wasRedirecting = sessionStorage.getItem('authRedirectInProgress') === 'true';
+			if (wasRedirecting) {
+				console.log('Successful redirect detected, clearing flag');
+				sessionStorage.removeItem('authRedirectInProgress');
+			}
+
 			const isAuth = await this.checkAuthentication();
 			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
-				// Add parameter to prevent infinite loops
-				window.location.href = 'login.html?from=main-app';
+				// Prevent multiple redirects
+				if (!sessionStorage.getItem('authRedirectInProgress')) {
+					sessionStorage.setItem('authRedirectInProgress', 'true');
+					window.location.href = 'login.html?from=main-app';
+				}
 				return;
 			}
 
 			console.log('Authentication successful, initializing app');
-			
-			// Clear any redirect flags
-			sessionStorage.removeItem('authRedirectInProgress');
 			
 			// Initialize the app
 			await this.initializeApp();
@@ -41,7 +48,10 @@ class WorkTimeTracker {
 		} catch (error) {
 			console.error('Error during authentication check:', error);
 			// On any error, redirect to login with error flag
-			window.location.href = 'login.html?from=main-app&error=auth-failed';
+			if (!sessionStorage.getItem('authRedirectInProgress')) {
+				sessionStorage.setItem('authRedirectInProgress', 'true');
+				window.location.href = 'login.html?from=main-app&error=auth-failed';
+			}
 		}
 	}
 
@@ -57,6 +67,7 @@ class WorkTimeTracker {
 		this.mandatoryLunchHours = 5;
 		this.lunchDuration = 30; // minutes
 		this.userMenuVisible = false;
+		this.hasRecentChanges = false;
 		
 		// Initialize app
 		this.initElements();
@@ -136,6 +147,11 @@ class WorkTimeTracker {
 
 			console.log('Saving data to Back4App...');
 
+			// Update sync status if CloudStorage is available
+			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
+				this.cloudStorage.updateSyncStatus('syncing');
+			}
+
 			// Find existing work data or create new
 			const WorkData = Parse.Object.extend('WorkData');
 			const query = new Parse.Query(WorkData);
@@ -165,7 +181,7 @@ class WorkTimeTracker {
 			return true;
 		} catch (error) {
 			console.error('Error saving to cloud:', error);
-			if (this.cloudStorage) {
+			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
 				this.cloudStorage.updateSyncStatus('error');
 			}
 			return false;
@@ -196,6 +212,9 @@ class WorkTimeTracker {
 				return false;
 			}
 
+			// Give Parse more time to initialize fully
+			await new Promise(resolve => setTimeout(resolve, 300));
+
 			const currentUser = Parse.User.current();
 			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
 			
@@ -213,12 +232,17 @@ class WorkTimeTracker {
 
 			// Verify session by fetching user from server to avoid stale sessions
 			try {
+				console.log('Verifying session with server...');
 				await currentUser.fetch();
 				console.log('Authentication check passed (server verified)');
 				return true;
 			} catch (e) {
-				console.warn('Session fetch failed, logging out', e);
-				await Parse.User.logOut();
+				console.warn('Session fetch failed, logging out user', e);
+				try {
+					await Parse.User.logOut();
+				} catch (logoutError) {
+					console.warn('Error during logout:', logoutError);
+				}
 				return false;
 			}
 		} catch (error) {
