@@ -95,13 +95,14 @@
             
             if (countdown <= 0) {
                 clearInterval(interval);
-                window.location.href = 'login.html';
+                window.location.href = 'loading-screen.html?from=index';
             }
         }, 1000);
         
         // Allow manual navigation
         document.getElementById('redirectBtn').addEventListener('click', () => {
             clearInterval(interval);
+            window.location.href = 'loading-screen.html?from=index';
         });
     </script>
 </body>
