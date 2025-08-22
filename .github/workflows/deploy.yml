@@ -38,8 +38,8 @@ jobs:
           cp index-redirect.html _site/index.html
           cp loading-screen.html _site/
           cp login.html _site/
-          cp main-app.html _site/main-app.html
-          cp mobile-styles.css _site/
+          cp index.html _site/main-app.html
+          cp styles.css _site/
           cp auth-styles.css _site/
           cp script.js _site/
           cp auth.js _site/
@@ -48,7 +48,8 @@ jobs:
           cp test-config.html _site/
           cp README.md _site/
           
-          # No redirect rewrites; routing is handled in source files
+          # Update auth.js to redirect to main-app.html instead of index.html
+          sed -i "s/window\.location\.href = 'index\.html'/window.location.href = 'main-app.html'/g" _site/auth.js
           
           echo "Files prepared for GitHub Pages deployment"
           ls -la _site/

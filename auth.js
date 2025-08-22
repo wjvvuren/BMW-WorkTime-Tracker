@@ -11,7 +11,6 @@ class AuthSystem {
         // Check for error messages from URL params
         this.checkForErrors();
         
-        // Initialize authentication checking
         this.checkCurrentUser();
     }
     
@@ -36,13 +35,7 @@ class AuthSystem {
         }
     }
     
-    addDebugInfo() {
-        // Debug buttons removed - authentication now works cleanly
-    }
-
-    updateQuickDebug(message) {
-        // Debug UI removed - method kept for compatibility
-    }
+    // Debug UI removed
 
     bindEvents() {
         // Form submissions
@@ -86,102 +79,42 @@ class AuthSystem {
     }
 
     async checkCurrentUser() {
-        this.updateQuickDebug('Checking current user...');
-        
         try {
             // Prevent infinite redirect loops by checking if we were redirected here intentionally
             const urlParams = new URLSearchParams(window.location.search);
             const from = urlParams.get('from');
             if (from) {
                 console.log('Redirected here with from=', from, '— staying on login page');
-                this.updateQuickDebug(`Redirected from ${from} - staying on login`);
-                // Clear any redirect flags since we're now on login page
-                sessionStorage.removeItem('authRedirectInProgress');
-                sessionStorage.removeItem('authRedirectTimestamp');
-                // If we were redirected from main due to auth failure, ensure no stale session persists
-                try {
-                    const maybeUser = Parse.User.current();
-                    if (maybeUser) {
-                        console.log('Logging out stale user after redirect from main');
-                        await Parse.User.logOut();
-                    }
-                } catch (e) {
-                    console.warn('Logout after redirect failed:', e);
-                }
-                // Clean up the URL
-                if (window.history && window.history.replaceState) {
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
                 return;
             }
             
-            // Check if we're in a redirect loop - but do not block on login
-            const redirectFlag = sessionStorage.getItem('authRedirectInProgress');
-            const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
-            
-            if (redirectFlag === 'true') {
-                const now = Date.now();
-                const timestamp = parseInt(redirectTimestamp) || 0;
-                const age = now - timestamp;
-
-                // If redirect was set more than 10 seconds ago, clear it (likely stale)
-                if (age > 10000) {
-                    console.log('Clearing stale redirect flag');
-                    this.updateQuickDebug('Clearing stale redirect flag');
-                    sessionStorage.removeItem('authRedirectInProgress');
-                    sessionStorage.removeItem('authRedirectTimestamp');
-                } else {
-                    // On login page, don't block due to a recent redirect flag (can cause a stuck state)
-                    console.log('Recent redirect flag detected on login, clearing and continuing auth check');
-                    this.updateQuickDebug(`Recent redirect flag detected (${Math.round(age / 1000)}s) - continuing...`);
-                    sessionStorage.removeItem('authRedirectInProgress');
-                    sessionStorage.removeItem('authRedirectTimestamp');
-                    // Continue with auth check instead of returning
-                }
-            }
-            
             // Add a small delay to ensure Parse is fully initialized
-            this.updateQuickDebug('Initializing Parse...');
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             this.currentUser = Parse.User.current();
             console.log('Current user check:', this.currentUser ? 'User logged in' : 'No user');
             
             if (this.currentUser) {
-                this.updateQuickDebug('User found - verifying session...');
                 // Verify the session is still valid
                 try {
-                    console.log('Verifying user session...');
                     await this.currentUser.fetch();
                     console.log('User session verified, redirecting to main app');
-                    this.updateQuickDebug('Session valid - redirecting to app...');
                     
-                    // Set flag with timestamp to prevent circular redirects
+                    // Add a flag to prevent circular redirects
                     sessionStorage.setItem('authRedirectInProgress', 'true');
-                    sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
                     
-                    setTimeout(() => {
-                        window.location.href = 'loading-screen.html';
-                    }, 200);
-                    
+                    // User is already logged in and session is valid, redirect to main app
+                    window.location.href = 'main-app.html';
                 } catch (sessionError) {
                     console.log('User session expired, staying on login page');
-                    this.updateQuickDebug('Session expired - please login');
                     // Session expired, log out and stay on login
                     await Parse.User.logOut();
                     this.currentUser = null;
-                    sessionStorage.removeItem('authRedirectInProgress');
-                    sessionStorage.removeItem('authRedirectTimestamp');
                 }
-            } else {
-                this.updateQuickDebug('No user logged in - ready for login');
             }
         } catch (error) {
             console.log('Error checking current user:', error);
-            this.updateQuickDebug(`Error: ${error.message}`);
             this.currentUser = null;
-            sessionStorage.removeItem('authRedirectInProgress');
-            sessionStorage.removeItem('authRedirectTimestamp');
         }
     }
 
@@ -219,17 +152,9 @@ class AuthSystem {
         }
 
         this.setLoading('loginBtn', true);
-        this.updateQuickDebug('Attempting login...');
 
         try {
-            // Clear any previous redirect flags
-            sessionStorage.removeItem('authRedirectInProgress');
-            sessionStorage.removeItem('authRedirectTimestamp');
-            
-            console.log('Attempting login for:', email);
             const user = await Parse.User.logIn(email, password);
-            console.log('Login successful for user:', user.get('email'));
-            this.updateQuickDebug('Login successful - redirecting...');
             
             // Store remember me preference
             if (rememberMe) {
@@ -238,19 +163,12 @@ class AuthSystem {
 
             this.showMessage('Login successful! Redirecting...', 'success');
             
-            // Set redirect flag with timestamp and redirect to main app
-            sessionStorage.setItem('authRedirectInProgress', 'true');
-            sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
-            
+            // Redirect to main app
             setTimeout(() => {
-                window.location.href = 'loading-screen.html';
-            }, 400);
+                window.location.href = 'main-app.html';
+            }, 1000);
 
         } catch (error) {
-            console.error('Login error:', error);
-            this.updateQuickDebug(`Login failed: ${error.message}`);
-            sessionStorage.removeItem('authRedirectInProgress');
-            sessionStorage.removeItem('authRedirectTimestamp');
             this.showMessage(this.getErrorMessage(error), 'error');
         } finally {
             this.setLoading('loginBtn', false);

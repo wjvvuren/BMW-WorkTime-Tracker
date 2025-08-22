@@ -81,7 +81,7 @@
                     updateStatus('Verifying session...');
                     try {
                         await currentUser.fetch();
-                        updateStatus('Authentication successful, entering app...');
+                        updateStatus('Authentication successful, loading app...');
                         window.location.href = 'main-app.html?from=loading';
                     } catch (error) {
                         updateStatus('Session expired, redirecting to login...');

@@ -25,10 +25,6 @@
                         <span id="userName">Loading...</span>
                         <button class="user-menu-btn" id="userMenuBtn">⚙️</button>
                     </div>
-                    <div class="sync-status" id="syncStatus">
-                        <span class="sync-icon">☁️</span>
-                        <span class="sync-text">Synced</span>
-                    </div>
                 </div>
             </div>
             <div class="date-display" id="currentDate"></div>
@@ -80,70 +76,12 @@
                 </div>
             </section>
 
-            <!-- Progress Bars Section -->
-            <section class="progress-section">
-                <!-- Custom Target Progress -->
-                <div class="progress-container custom-target">
-                    <div class="progress-header">
-                        <h3>🎯 Progress to My Target</h3>
-                        <div class="progress-controls">
-                            <span class="progress-text" id="customTargetText">Target: Set your goal</span>
-                            <button class="target-btn" id="setCustomTargetBtn" title="Set Custom Target">⚙️</button>
-                        </div>
-                    </div>
-                    <div class="progress-bar custom-progress" id="customProgressBar">
-                        <div class="progress-fill" id="customProgressFill"></div>
-                    </div>
-                    <div class="target-countdown" id="customTargetCountdown" style="display: none;">
-                        <span class="countdown-label">Time remaining:</span>
-                        <span class="countdown-time" id="customTargetTime">--:--:--</span>
-                    </div>
-                </div>
+            <!-- Progress Bars Section Removed -->
 
-                <div class="progress-container">
-                    <div class="progress-header">
-                        <h3>🍔 Progress to Lunch Break</h3>
-                        <span class="progress-text">Target: 5 hours for automatic lunch deduction</span>
-                    </div>
-                    <div class="progress-bar lunch-progress" id="lunchProgressBar">
-                        <div class="progress-fill" id="lunchProgressFill"></div>
-                    </div>
-                </div>
-                
-                <div class="progress-container">
-                    <div class="progress-header">
-                        <h3>🏁 Progress to Daily Maximum</h3>
-                        <span class="progress-text">Target: 10 hours billable</span>
-                    </div>
-                    <div class="progress-bar daily-progress" id="dailyProgressBar">
-                        <div class="progress-fill" id="dailyProgressFill"></div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Action Buttons -->
-            <section class="action-section">
-                <button class="action-btn primary" id="startSessionBtn">
-                    ▶️ Start Work
-                </button>
-                <button class="action-btn secondary" id="pauseSessionBtn" disabled>
-                    ⏸️ Pause
-                </button>
-                <button class="action-btn danger" id="endSessionBtn" disabled>
-                    ⏹️ End Work
-                </button>
-                <button class="action-btn success" id="startLunchBtn" disabled>
-                    🍽️ Lunch
-                </button>
-            </section>
-
-            <!-- Manual Entry Button -->
+            <!-- Action Buttons Section Simplified -->
             <section class="action-section">
                 <button class="action-btn secondary" id="manualEntryBtn">
                     ✏️ Add Entry
-                </button>
-                <button class="action-btn primary" id="completeSessionBtn" style="display: none;">
-                    ✅ Complete
                 </button>
             </section>
 
@@ -224,42 +162,7 @@
                 </div>
             </div>
 
-            <!-- Custom Target Modal -->
-            <div class="modal-overlay" id="customTargetModal" style="display: none;">
-                <div class="modal custom-target-modal">
-                    <div class="modal-header">
-                        <h3>🎯 Set Your Daily Target</h3>
-                        <button class="modal-close" id="customTargetModalClose">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="target-options">
-                            <div class="form-group">
-                                <label for="customTargetHours">Target Hours for Today:</label>
-                                <input type="number" id="customTargetHours" class="form-input" 
-                                       min="1" max="16" step="0.5" placeholder="8.0">
-                                <small class="form-help">Set your personal goal for today (1-16 hours)</small>
-                            </div>
-                            
-                            <div class="preset-targets">
-                                <h4>Quick Presets:</h4>
-                                <div class="preset-buttons">
-                                    <button class="preset-btn" data-hours="6">6h</button>
-                                    <button class="preset-btn" data-hours="7">7h</button>
-                                    <button class="preset-btn" data-hours="8">8h</button>
-                                    <button class="preset-btn" data-hours="8.5">8.5h</button>
-                                    <button class="preset-btn" data-hours="9">9h</button>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="form-actions">
-                            <button class="btn-secondary" id="cancelCustomTarget">Cancel</button>
-                            <button class="btn-danger" id="clearCustomTarget">Clear Target</button>
-                            <button class="btn-primary" id="saveCustomTarget">Set Target</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Custom Target Modal Removed -->
 
             <!-- Active Sessions -->
             <section class="active-sessions-section" id="activeSessionsSection" style="display: none;">

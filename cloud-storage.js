@@ -4,7 +4,6 @@ class CloudStorage {
         this.currentUser = null;
         this.syncInProgress = false;
         this.lastSyncTime = null;
-        this.workTimeTracker = null;
         this.init();
     }
 
@@ -22,8 +21,8 @@ class CloudStorage {
             this.updateUserInfo();
             this.bindEvents();
             
-            // Wait for main app to initialize, then get reference
-            this.waitForMainApp();
+            // Load data from cloud
+            await this.loadFromCloud();
             
             // Setup auto-sync
             this.setupAutoSync();
@@ -32,20 +31,6 @@ class CloudStorage {
             console.error('Error initializing cloud storage:', error);
             this.showError('Failed to connect to cloud. Working offline.');
         }
-    }
-
-    waitForMainApp() {
-        // Wait for the main app to be available
-        const checkForApp = () => {
-            if (window.workTimeTracker) {
-                this.workTimeTracker = window.workTimeTracker;
-                console.log('CloudStorage connected to main app');
-                this.updateSyncStatus('synced');
-            } else {
-                setTimeout(checkForApp, 500);
-            }
-        };
-        checkForApp();
     }
 
     bindEvents() {
@@ -71,12 +56,12 @@ class CloudStorage {
             }
         });
 
-        // Sync on page visibility change (when user returns to tab) - removed to reduce API calls
-        // document.addEventListener('visibilitychange', () => {
-        //     if (!document.hidden) {
-        //         this.syncNow();
-        //     }
-        // });
+        // Sync on page visibility change (when user returns to tab)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.syncNow();
+            }
+        });
 
         // Sync before page unload
         window.addEventListener('beforeunload', () => {
@@ -103,18 +88,14 @@ class CloudStorage {
         try {
             this.showLoading('Signing out...');
             
-            // Clear any local data and session storage
+            // Clear any local data
             localStorage.clear();
-            sessionStorage.clear();
             
             // Log out from Parse
             await Parse.User.logOut();
             
             console.log('User logged out successfully');
-            // Add a delay to ensure logout completes before redirect
-            setTimeout(() => {
-                window.location.href = 'login.html?from=main-app';
-            }, 500);
+            window.location.href = 'login.html?from=main-app';
             
         } catch (error) {
             console.error('Logout error:', error);
@@ -122,10 +103,7 @@ class CloudStorage {
             
             // Force redirect even if logout fails
             localStorage.clear();
-            sessionStorage.clear();
-            setTimeout(() => {
-                window.location.href = 'login.html?from=main-app';
-            }, 500);
+            window.location.href = 'login.html?from=main-app';
         }
     }
 
@@ -231,18 +209,23 @@ class CloudStorage {
     }
 
     setupAutoSync() {
-        // Only sync on localStorage changes (debounced), no auto intervals
+        // Auto-sync every 5 minutes
+        setInterval(() => {
+            this.saveToCloud();
+        }, 5 * 60 * 1000);
+
+        // Sync when data changes (hook into localStorage changes)
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = (key, value) => {
             originalSetItem.call(localStorage, key, value);
             
             // Only sync work-related data
             if (key.includes('workSessions') || key.includes('activeSessions') || key.includes('customTargetHours')) {
-                // Debounce sync calls - only sync after 5 seconds of inactivity
+                // Debounce sync calls
                 clearTimeout(this.syncTimeout);
                 this.syncTimeout = setTimeout(() => {
                     this.saveToCloud();
-                }, 5000);
+                }, 2000);
             }
         };
     }

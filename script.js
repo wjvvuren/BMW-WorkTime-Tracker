@@ -8,84 +8,40 @@ class WorkTimeTracker {
 			return;
 		}
 
-		// Wait for DOM to be fully loaded before starting
-		if (document.readyState === 'loading') {
-			document.addEventListener('DOMContentLoaded', () => {
-				this.performAuthCheck();
-			});
-		} else {
-			this.performAuthCheck();
+		// Check for redirect loops
+		if (sessionStorage.getItem('authRedirectInProgress') === 'true') {
+			console.log('Potential redirect loop detected, clearing flag');
+			sessionStorage.removeItem('authRedirectInProgress');
 		}
+
+		// Check authentication with more robust error handling
+		this.performAuthCheck();
 	}
 
 	async performAuthCheck() {
-		this.updateMainDebug('Starting auth check...');
-		
 		try {
 			console.log('Performing authentication check...');
-
-			// Clear redirect flag if we made it to main app successfully  
-			const wasRedirecting = sessionStorage.getItem('authRedirectInProgress') === 'true';
-			const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
-			
-			if (wasRedirecting) {
-				this.updateMainDebug('Processing redirect...');
-				const now = Date.now();
-				const timestamp = parseInt(redirectTimestamp) || 0;
-				
-				// Only clear if redirect was recent (within last 30 seconds)
-				if (now - timestamp < 30000) {
-					console.log('Successful redirect detected, clearing flags');
-					this.updateMainDebug('Successful redirect - clearing flags');
-					sessionStorage.removeItem('authRedirectInProgress');
-					sessionStorage.removeItem('authRedirectTimestamp');
-				}
-			}
 
 			const isAuth = await this.checkAuthentication();
 			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
-				this.updateMainDebug('Auth failed - redirecting to login');
-				
-				// Prevent multiple redirects with timestamp check
-				const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
-				const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
-				
-				if (existingRedirect !== 'true' || !existingTimestamp || 
-				    (Date.now() - parseInt(existingTimestamp)) > 10000) {
-					// set flags then redirect to login, adding a cache-busting param to avoid cached html
-					sessionStorage.setItem('authRedirectInProgress', 'true');
-					sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
-					const cb = `cb=${Date.now()}`;
-					window.location.href = `login.html?from=main-app&${cb}`;
-				} else {
-					console.log('Recent redirect attempt detected, avoiding duplicate redirect');
-					this.updateMainDebug('Avoiding duplicate redirect');
-				}
+				// Add parameter to prevent infinite loops
+				window.location.href = 'login.html?from=main-app';
 				return;
 			}
 
 			console.log('Authentication successful, initializing app');
-			this.updateMainDebug('Auth successful - initializing app');
+			
+			// Clear any redirect flags
+			sessionStorage.removeItem('authRedirectInProgress');
 			
 			// Initialize the app
 			await this.initializeApp();
 			
 		} catch (error) {
 			console.error('Error during authentication check:', error);
-			this.updateMainDebug(`Auth error: ${error.message}`);
-			
-			// On any error, redirect to login with error flag (but check for recent redirects)
-			const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
-			const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
-			
-			if (existingRedirect !== 'true' || !existingTimestamp || 
-			    (Date.now() - parseInt(existingTimestamp)) > 10000) {
-				
-				sessionStorage.setItem('authRedirectInProgress', 'true');
-				sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
-				window.location.href = 'login.html?from=main-app&error=auth-failed';
-			}
+			// On any error, redirect to login with error flag
+			window.location.href = 'login.html?from=main-app&error=auth-failed';
 		}
 	}
 
@@ -101,7 +57,6 @@ class WorkTimeTracker {
 		this.mandatoryLunchHours = 5;
 		this.lunchDuration = 30; // minutes
 		this.userMenuVisible = false;
-		this.hasRecentChanges = false;
 		
 		// Initialize app
 		this.initElements();
@@ -181,11 +136,6 @@ class WorkTimeTracker {
 
 			console.log('Saving data to Back4App...');
 
-			// Update sync status if CloudStorage is available
-			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
-				this.cloudStorage.updateSyncStatus('syncing');
-			}
-
 			// Find existing work data or create new
 			const WorkData = Parse.Object.extend('WorkData');
 			const query = new Parse.Query(WorkData);
@@ -207,17 +157,12 @@ class WorkTimeTracker {
 			await workData.save();
 			
 			console.log('Data saved to cloud successfully');
-			// Update sync status
-			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
-				this.cloudStorage.updateSyncStatus('synced');
-			}
+			// Sync status removed
 			
 			return true;
 		} catch (error) {
 			console.error('Error saving to cloud:', error);
-			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
-				this.cloudStorage.updateSyncStatus('error');
-			}
+			// Sync status removed
 			return false;
 		}
 	}
@@ -239,23 +184,15 @@ class WorkTimeTracker {
 	}
 
 	async checkAuthentication() {
-		this.updateMainDebug('Checking Parse initialization...');
-		
 		try {
 			// Check if Parse is initialized
 			if (typeof Parse === 'undefined') {
 				console.error('Parse is not defined - config may not be loaded');
-				this.updateMainDebug('ERROR: Parse not defined');
 				return false;
 			}
 
-			// Give Parse more time to initialize fully and process any recent login
-			this.updateMainDebug('Waiting for Parse to fully initialize...');
-			await new Promise(resolve => setTimeout(resolve, 500));
-
 			const currentUser = Parse.User.current();
 			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
-			this.updateMainDebug(currentUser ? `User found: ${currentUser.get('email') || 'Unknown'}` : 'No user found');
 			
 			if (!currentUser) {
 				console.log('No current user found');
@@ -266,37 +203,23 @@ class WorkTimeTracker {
 			const sessionToken = currentUser.getSessionToken();
 			if (!sessionToken) {
 				console.log('No session token found, user session may be invalid');
-				this.updateMainDebug('ERROR: No session token');
 				return false;
 			}
 
 			// Verify session by fetching user from server to avoid stale sessions
 			try {
-				console.log('Verifying session with server...');
-				this.updateMainDebug('Verifying session with server...');
 				await currentUser.fetch();
 				console.log('Authentication check passed (server verified)');
-				this.updateMainDebug('✅ Session verified - user authenticated');
 				return true;
 			} catch (e) {
-				console.warn('Session fetch failed, logging out user', e);
-				this.updateMainDebug(`Session verification failed: ${e.message}`);
-				try {
-					await Parse.User.logOut();
-				} catch (logoutError) {
-					console.warn('Error during logout:', logoutError);
-				}
+				console.warn('Session fetch failed, logging out', e);
+				await Parse.User.logOut();
 				return false;
 			}
 		} catch (error) {
 			console.error('Authentication check error:', error);
-			this.updateMainDebug(`Auth check error: ${error.message}`);
 			return false;
 		}
-	}
-
-	updateMainDebug(message) {
-		// Debug UI removed - method kept for compatibility 
 	}
 
 	setupUserInterface() {
@@ -329,8 +252,6 @@ class WorkTimeTracker {
 			userName: document.getElementById('userName'),
 			userMenuBtn: document.getElementById('userMenuBtn'),
 			userMenu: document.getElementById('userMenu'),
-			syncStatus: document.getElementById('syncStatus'),
-			syncIcon: document.getElementById('syncIcon'),
 			loadingOverlay: document.getElementById('loadingOverlay'),
 			
 			// Existing elements
@@ -340,18 +261,10 @@ class WorkTimeTracker {
 			totalHoursToday: document.getElementById('totalHoursToday'),
 			billableHoursToday: document.getElementById('billableHoursToday'),
 			lunchDeductionStatus: document.getElementById('lunchDeductionStatus'),
-			lunchProgressFill: document.getElementById('lunchProgressFill'),
-			dailyProgressFill: document.getElementById('dailyProgressFill'),
-			customProgressFill: document.getElementById('customProgressFill'),
-			customTargetText: document.getElementById('customTargetText'),
-			customTargetCountdown: document.getElementById('customTargetCountdown'),
-			customTargetTime: document.getElementById('customTargetTime'),
-			setCustomTargetBtn: document.getElementById('setCustomTargetBtn'),
 			timeRemaining: document.getElementById('timeRemaining'),
 			maxClockOut: document.getElementById('maxClockOut'),
 			countdownCard: document.getElementById('countdownCard'),
 			manualEntryBtn: document.getElementById('manualEntryBtn'),
-			completeSessionBtn: document.getElementById('completeSessionBtn'),
 			lunchAlert: document.getElementById('lunchAlert'),
 			activeSessionsSection: document.getElementById('activeSessionsSection'),
 			activeSessionsList: document.getElementById('activeSessionsList'),
@@ -395,7 +308,6 @@ class WorkTimeTracker {
 	bindEvents() {
 		// Main functionality events
 		this.els.manualEntryBtn.addEventListener('click', () => this.openManualEntry());
-		this.els.completeSessionBtn.addEventListener('click', () => this.completeAllSessions());
 		this.els.resetBtn.addEventListener('click', () => this.resetDay());
 		this.els.modalClose.addEventListener('click', () => this.closeManualEntry());
 		this.els.cancelEntry.addEventListener('click', () => this.closeManualEntry());
@@ -409,16 +321,6 @@ class WorkTimeTracker {
 		});
 		this.els.checkOutTime.addEventListener('input', () => this.handleCheckOutTimeChange());
 		
-		// Custom Target Events
-		this.els.setCustomTargetBtn.addEventListener('click', () => this.openCustomTargetModal());
-		this.els.customTargetModalClose.addEventListener('click', () => this.closeCustomTargetModal());
-		this.els.cancelCustomTarget.addEventListener('click', () => this.closeCustomTargetModal());
-		this.els.clearCustomTarget.addEventListener('click', () => this.clearCustomTargetValue());
-		this.els.saveCustomTarget.addEventListener('click', () => this.saveCustomTargetValue());
-		this.els.customTargetModal.addEventListener('click', (e) => {
-			if (e.target === this.els.customTargetModal) this.closeCustomTargetModal();
-		});
-
 		// User interface events
 		if (this.els.userMenuBtn) {
 			this.els.userMenuBtn.addEventListener('click', (e) => {
@@ -442,14 +344,7 @@ class WorkTimeTracker {
 			}
 		});
 		
-		// Preset buttons
-		document.querySelectorAll('.preset-btn').forEach(btn => {
-			btn.addEventListener('click', (e) => {
-				document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-				e.target.classList.add('active');
-				this.els.customTargetHours.value = e.target.dataset.hours;
-			});
-		});
+		// Preset button functionality removed
 	}
 
 	// --- User Interface Methods ---
@@ -532,37 +427,7 @@ class WorkTimeTracker {
 		}
 	}
 
-	updateSyncStatus(status, message = '') {
-		if (!this.els.syncStatus || !this.els.syncIcon) return;
-
-		// Remove all status classes
-		this.els.syncStatus.classList.remove('synced', 'syncing', 'error');
-		
-		// Add appropriate status class
-		this.els.syncStatus.classList.add(status);
-		
-		// Update icon and text
-		let icon = '●';
-		let text = message;
-		
-		switch (status) {
-			case 'synced':
-				icon = '✓';
-				text = text || 'Synced';
-				break;
-			case 'syncing':
-				icon = '↻';
-				text = text || 'Syncing...';
-				break;
-			case 'error':
-				icon = '!';
-				text = text || 'Sync failed';
-				break;
-		}
-		
-		this.els.syncIcon.textContent = icon;
-		this.els.syncStatus.setAttribute('title', text);
-	}
+	// Sync status functionality removed
 
 	// --- Core Actions ---
 	completeAllSessions() {
@@ -880,80 +745,7 @@ class WorkTimeTracker {
 		};
 	}
 
-	// --- Custom Target Methods ---
-	openCustomTargetModal() {
-		this.els.customTargetModal.style.display = 'flex';
-		this.els.customTargetHours.value = this.customTargetHours || '';
-		this.els.customTargetHours.focus();
-	}
-
-	closeCustomTargetModal() {
-		this.els.customTargetModal.style.display = 'none';
-		// Reset active states
-		document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-	}
-
-	async clearCustomTargetValue() {
-		this.customTargetHours = 0;
-		
-		// Save to cloud immediately
-		this.hasRecentChanges = true;
-		await this.saveToCloud();
-		
-		this.closeCustomTargetModal();
-		this.updateDisplay();
-		this.showSuccess('Custom target cleared');
-	}
-
-	async saveCustomTargetValue() {
-		const hours = parseFloat(this.els.customTargetHours.value);
-		if (isNaN(hours) || hours <= 0 || hours > 16) {
-			alert('Please enter a valid target between 1 and 16 hours.');
-			return;
-		}
-		
-		this.customTargetHours = hours;
-		
-		// Save to cloud immediately
-		this.hasRecentChanges = true;
-		await this.saveToCloud();
-		
-		this.closeCustomTargetModal();
-		this.updateDisplay();
-		this.showSuccess(`Custom target set to ${hours} hours`);
-	}
-
-	updateCustomTargetProgress(billableSeconds) {
-		if (!this.customTargetHours || this.customTargetHours === 0) {
-			// No custom target set
-			this.els.customTargetText.textContent = 'Target: Set your goal';
-			this.els.customProgressFill.style.width = '0%';
-			this.els.customTargetCountdown.style.display = 'none';
-			return;
-		}
-
-		const targetSeconds = this.customTargetHours * 3600;
-		const progress = Math.min((billableSeconds / targetSeconds) * 100, 100);
-		
-		// Update progress bar
-		this.els.customProgressFill.style.width = `${progress}%`;
-		
-		// Update target text
-		this.els.customTargetText.textContent = `Target: ${this.customTargetHours}h (${progress.toFixed(1)}%)`;
-		
-		// Update countdown
-		const remainingSeconds = Math.max(0, targetSeconds - billableSeconds);
-		if (remainingSeconds > 0 && billableSeconds > 0) {
-			this.els.customTargetCountdown.style.display = 'block';
-			this.els.customTargetTime.textContent = this.formatTime(remainingSeconds);
-		} else if (billableSeconds >= targetSeconds) {
-			this.els.customTargetCountdown.style.display = 'block';
-			this.els.customTargetTime.textContent = '🎉 Target Reached!';
-			this.els.customTargetTime.style.color = '#00b894';
-		} else {
-			this.els.customTargetCountdown.style.display = 'none';
-		}
-	}
+	// --- Custom Target Methods Removed ---
 
 	// --- Display Updates ---
 	updateDisplay() {
@@ -973,7 +765,6 @@ class WorkTimeTracker {
 		this.updateActiveSessionsDisplay();
 		this.updateSessionsList();
 		this.updateStatistics();
-		this.updateButtonStates();
 	}
 	updateSessionStatus() {
 		if (this.activeSessions.length > 0) {
@@ -993,21 +784,7 @@ class WorkTimeTracker {
 		}
 	}
 	updateProgressAndCountdown(billableSeconds) {
-		// Dual progress bars: lunch threshold (5 hours) and daily maximum (10 hours)
-		const lunchThresholdSeconds = this.mandatoryLunchHours * 3600; // 5 hours
 		const maxSeconds = this.maxHoursPerDay * 3600; // 10 hours for countdown calculations
-		
-		// Lunch progress bar: show progress toward lunch (5 hours), cap at 100%
-		const lunchProgress = Math.min((billableSeconds / lunchThresholdSeconds) * 100, 100);
-		this.els.lunchProgressFill.style.width = `${lunchProgress}%`;
-		
-		// Daily progress bar: show progress toward daily maximum (10 hours), cap at 100%
-		const dailyProgress = Math.min((billableSeconds / maxSeconds) * 100, 100);
-		this.els.dailyProgressFill.style.width = `${dailyProgress}%`;
-		
-		// Custom target progress bar
-		this.updateCustomTargetProgress(billableSeconds);
-		
 		const remainingBillableTime = maxSeconds - billableSeconds;
 		
 		// Show countdown card if there are any sessions today or active sessions
@@ -1119,9 +896,6 @@ class WorkTimeTracker {
 		const billableInfo = this.getBillableHoursToday();
 		const efficiency = totalTime > 0 ? Math.round((billableInfo.billableSeconds / totalTime) * 100) : 100;
 		this.els.efficiency.textContent = `${efficiency}%`;
-	}
-	updateButtonStates() {
-		this.els.completeSessionBtn.style.display = this.activeSessions.length > 0 ? 'inline-flex' : 'none';
 	}
 
 	// --- Utility ---
