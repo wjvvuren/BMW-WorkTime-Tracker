@@ -296,11 +296,7 @@ class WorkTimeTracker {
 	}
 
 	updateMainDebug(message) {
-		const debugElement = document.getElementById('mainDebugInfo');
-		if (debugElement) {
-			const timestamp = new Date().toLocaleTimeString();
-			debugElement.innerHTML = `${timestamp}: ${message}`;
-		}
+		// Debug UI removed - method kept for compatibility 
 	}
 
 	setupUserInterface() {

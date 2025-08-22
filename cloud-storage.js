@@ -71,12 +71,12 @@ class CloudStorage {
             }
         });
 
-        // Sync on page visibility change (when user returns to tab)
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-                this.syncNow();
-            }
-        });
+        // Sync on page visibility change (when user returns to tab) - removed to reduce API calls
+        // document.addEventListener('visibilitychange', () => {
+        //     if (!document.hidden) {
+        //         this.syncNow();
+        //     }
+        // });
 
         // Sync before page unload
         window.addEventListener('beforeunload', () => {
@@ -231,23 +231,18 @@ class CloudStorage {
     }
 
     setupAutoSync() {
-        // Auto-sync every 5 minutes
-        setInterval(() => {
-            this.saveToCloud();
-        }, 5 * 60 * 1000);
-
-        // Sync when data changes (hook into localStorage changes)
+        // Only sync on localStorage changes (debounced), no auto intervals
         const originalSetItem = localStorage.setItem;
         localStorage.setItem = (key, value) => {
             originalSetItem.call(localStorage, key, value);
             
             // Only sync work-related data
             if (key.includes('workSessions') || key.includes('activeSessions') || key.includes('customTargetHours')) {
-                // Debounce sync calls
+                // Debounce sync calls - only sync after 5 seconds of inactivity
                 clearTimeout(this.syncTimeout);
                 this.syncTimeout = setTimeout(() => {
                     this.saveToCloud();
-                }, 2000);
+                }, 5000);
             }
         };
     }

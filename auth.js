@@ -11,12 +11,7 @@ class AuthSystem {
         // Check for error messages from URL params
         this.checkForErrors();
         
-        // Add debug info
-        this.addDebugInfo();
-        
-        // Add quick debug display
-        this.updateQuickDebug('Initializing...');
-        
+        // Initialize authentication checking
         this.checkCurrentUser();
     }
     
@@ -42,68 +37,11 @@ class AuthSystem {
     }
     
     addDebugInfo() {
-        // Add debug button for troubleshooting
-        const debugBtn = document.createElement('button');
-        debugBtn.textContent = 'Debug Auth Status';
-        debugBtn.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            background: #666;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            z-index: 1000;
-        `;
-        debugBtn.addEventListener('click', () => {
-            const currentUser = Parse.User.current();
-            const sessionToken = currentUser ? currentUser.getSessionToken() : null;
-            
-            alert(`Debug Info:
-User: ${currentUser ? currentUser.get('email') : 'None'}
-Session Token: ${sessionToken ? 'Present' : 'Missing'}
-Page: ${window.location.pathname}`);
-        });
-        document.body.appendChild(debugBtn);
-        
-        // Add force logout button for testing
-        const logoutBtn = document.createElement('button');
-        logoutBtn.textContent = 'Force Logout';
-        logoutBtn.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 150px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 12px;
-            z-index: 1000;
-        `;
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await Parse.User.logOut();
-                localStorage.clear();
-                alert('Forced logout complete');
-                window.location.reload();
-            } catch (error) {
-                alert('Force logout error: ' + error.message);
-            }
-        });
-        document.body.appendChild(logoutBtn);
+        // Debug buttons removed - authentication now works cleanly
     }
 
     updateQuickDebug(message) {
-        const debugInfo = document.getElementById('debugInfo');
-        if (debugInfo) {
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.innerHTML = `${timestamp}: ${message}`;
-        }
+        // Debug UI removed - method kept for compatibility
     }
 
     bindEvents() {
