@@ -4,7 +4,6 @@ class CloudStorage {
         this.currentUser = null;
         this.syncInProgress = false;
         this.lastSyncTime = null;
-        this.workTimeTracker = null;
         this.init();
     }
 
@@ -22,8 +21,8 @@ class CloudStorage {
             this.updateUserInfo();
             this.bindEvents();
             
-            // Wait for main app to initialize, then get reference
-            this.waitForMainApp();
+            // Load data from cloud
+            await this.loadFromCloud();
             
             // Setup auto-sync
             this.setupAutoSync();
@@ -32,20 +31,6 @@ class CloudStorage {
             console.error('Error initializing cloud storage:', error);
             this.showError('Failed to connect to cloud. Working offline.');
         }
-    }
-
-    waitForMainApp() {
-        // Wait for the main app to be available
-        const checkForApp = () => {
-            if (window.workTimeTracker) {
-                this.workTimeTracker = window.workTimeTracker;
-                console.log('CloudStorage connected to main app');
-                this.updateSyncStatus('synced');
-            } else {
-                setTimeout(checkForApp, 500);
-            }
-        };
-        checkForApp();
     }
 
     bindEvents() {
@@ -103,18 +88,14 @@ class CloudStorage {
         try {
             this.showLoading('Signing out...');
             
-            // Clear any local data and session storage
+            // Clear any local data
             localStorage.clear();
-            sessionStorage.clear();
             
             // Log out from Parse
             await Parse.User.logOut();
             
             console.log('User logged out successfully');
-            // Add a delay to ensure logout completes before redirect
-            setTimeout(() => {
-                window.location.href = 'login.html?from=main-app';
-            }, 500);
+            window.location.href = 'login.html?from=main-app';
             
         } catch (error) {
             console.error('Logout error:', error);
@@ -122,10 +103,7 @@ class CloudStorage {
             
             // Force redirect even if logout fails
             localStorage.clear();
-            sessionStorage.clear();
-            setTimeout(() => {
-                window.location.href = 'login.html?from=main-app';
-            }, 500);
+            window.location.href = 'login.html?from=main-app';
         }
     }
 
