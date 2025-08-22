@@ -4,30 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BMW WorkTime Tracker</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="mobile-styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <div class="container">
         <header class="header">
-            <div class="bmw-logo">
-                <div class="logo-circle">
-                    <div class="logo-quadrant q1"></div>
-                    <div class="logo-quadrant q2"></div>
-                    <div class="logo-quadrant q3"></div>
-                    <div class="logo-quadrant q4"></div>
-                    <!-- <div class="logo-center">BMW</div> -->
+            <div class="header-row">
+                <div class="bmw-logo">
+                    <div class="logo-circle">
+                        <div class="logo-quadrant q1"></div>
+                        <div class="logo-quadrant q2"></div>
+                        <div class="logo-quadrant q3"></div>
+                        <div class="logo-quadrant q4"></div>
+                    </div>
+                    <h1 class="title">WorkTime Tracker</h1>
                 </div>
-            </div>
-            <h1 class="title">WorkTime Tracker</h1>
-            <div class="header-controls">
-                <div class="user-info" id="userInfo">
-                    <span id="userName">Loading...</span>
-                    <button class="user-menu-btn" id="userMenuBtn">⚙️</button>
-                </div>
-                <div class="sync-status" id="syncStatus">
-                    <span class="sync-icon">☁️</span>
-                    <span class="sync-text">Synced</span>
+                <div class="header-controls">
+                    <div class="user-info" id="userInfo">
+                        <span id="userName">Loading...</span>
+                        <button class="user-menu-btn" id="userMenuBtn">⚙️</button>
+                    </div>
+                    <div class="sync-status" id="syncStatus">
+                        <span class="sync-icon">☁️</span>
+                        <span class="sync-text">Synced</span>
+                    </div>
                 </div>
             </div>
             <div class="date-display" id="currentDate"></div>
@@ -54,25 +55,25 @@
             <!-- Time Display Section -->
             <section class="time-section">
                 <div class="time-card">
-                    <h2>Current Session Time</h2>
+                    <h2>Current Session</h2>
                     <div class="time-display" id="currentSessionTime">00:00:00</div>
-                    <div class="session-status" id="sessionStatus">No active sessions</div>
+                    <div class="session-status" id="sessionStatus">No active</div>
                 </div>
 
                 <div class="time-card">
-                    <h2>Total Time Today</h2>
+                    <h2>Total Today</h2>
                     <div class="time-display primary" id="totalHoursToday">00:00:00</div>
-                    <div class="session-status">Actual time spent</div>
+                    <div class="session-status">Actual time</div>
                 </div>
 
                 <div class="time-card">
-                    <h2>Billable Work Hours</h2>
+                    <h2>Billable Hours</h2>
                     <div class="time-display primary" id="billableHoursToday">00:00:00</div>
-                    <div class="session-status" id="lunchDeductionStatus">No lunch deduction yet</div>
+                    <div class="session-status" id="lunchDeductionStatus">No lunch yet</div>
                 </div>
 
                 <div class="time-card warning" id="countdownCard" style="display: none;">
-                    <h2>Time Until Maximum</h2>
+                    <h2>Time Until Max</h2>
                     <div class="time-display countdown" id="timeRemaining">10:00:00</div>
                     <div class="warning-text" id="warningText">Clock out at latest: <span id="maxClockOut"></span></div>
                     <div class="warning-text">Based on billable hours (lunch excluded)</div>
@@ -122,14 +123,27 @@
 
             <!-- Action Buttons -->
             <section class="action-section">
-                <button class="action-btn manual-entry" id="manualEntryBtn">
-                    <span class="btn-icon">✏️</span>
-                    <span class="btn-text">Add Time Entry</span>
+                <button class="action-btn primary" id="startSessionBtn">
+                    ▶️ Start Work
                 </button>
+                <button class="action-btn secondary" id="pauseSessionBtn" disabled>
+                    ⏸️ Pause
+                </button>
+                <button class="action-btn danger" id="endSessionBtn" disabled>
+                    ⏹️ End Work
+                </button>
+                <button class="action-btn success" id="startLunchBtn" disabled>
+                    🍽️ Lunch
+                </button>
+            </section>
 
-                <button class="action-btn complete-session" id="completeSessionBtn" style="display: none;">
-                    <span class="btn-icon">✅</span>
-                    <span class="btn-text">Complete Current Session</span>
+            <!-- Manual Entry Button -->
+            <section class="action-section">
+                <button class="action-btn secondary" id="manualEntryBtn">
+                    ✏️ Add Entry
+                </button>
+                <button class="action-btn primary" id="completeSessionBtn" style="display: none;">
+                    ✅ Complete
                 </button>
             </section>
 
@@ -256,44 +270,47 @@
 
             <!-- Today's Sessions -->
             <section class="sessions-section">
-                <h2>Today's Sessions</h2>
-                <div class="sessions-list" id="sessionsList">
-                    <div class="no-sessions">No sessions recorded today</div>
+                <div class="sessions-container">
+                    <div class="sessions-header">
+                        <h3>Today's Sessions</h3>
+                        <span id="sessionsCount">0</span>
+                    </div>
+                    <div class="sessions-list" id="sessionsList">
+                        <div class="no-sessions">No sessions recorded today</div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Statistics -->
-            <section class="stats-section">
-                <div class="stat-card">
-                    <h3>Sessions Today</h3>
-                    <div class="stat-value" id="sessionsCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Breaks Taken</h3>
-                    <div class="stat-value" id="breaksCount">0</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Efficiency</h3>
-                    <div class="stat-value" id="efficiency">100%</div>
+            <!-- Statistics (Compact) -->
+            <section class="sessions-section">
+                <div class="sessions-container">
+                    <div class="sessions-header">
+                        <h3>Daily Stats</h3>
+                        <button class="action-btn danger" id="resetBtn" style="padding: 4px 8px; font-size: 0.8rem;">🗑️ Reset</button>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--bmw-dark-gray);">Sessions</div>
+                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--bmw-blue);" id="sessionsCountStat">0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--bmw-dark-gray);">Breaks</div>
+                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--bmw-blue);" id="breaksCount">0</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.8rem; color: var(--bmw-dark-gray);">Efficiency</div>
+                            <div style="font-size: 1.2rem; font-weight: 600; color: var(--bmw-blue);" id="efficiency">100%</div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>
-
-        <!-- Reset Button -->
-        <footer class="footer">
-            <button class="reset-btn" id="resetBtn">Reset Day</button>
-        </footer>
     </div>
-
-    <!-- Particles Animation -->
-    <div class="particles" id="particles"></div>
 
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="globalLoadingOverlay" style="display: none;">
-        <div class="loading-content">
-            <div class="loading-spinner large"></div>
-            <p id="loadingText">Loading...</p>
-        </div>
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loadingText">Loading...</div>
     </div>
 
     <!-- Scripts -->

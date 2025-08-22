@@ -39,7 +39,7 @@ jobs:
           cp loading-screen.html _site/
           cp login.html _site/
           cp main-app.html _site/main-app.html
-          cp styles.css _site/
+          cp mobile-styles.css _site/
           cp auth-styles.css _site/
           cp script.js _site/
           cp auth.js _site/

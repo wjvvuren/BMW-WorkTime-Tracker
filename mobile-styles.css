@@ -1,0 +1,554 @@
+/* BMW WorkTime Tracker - Mobile Optimized Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bmw-blue: #0066CC;
+    --bmw-dark-blue: #004499;
+    --bmw-light-blue: #3388DD;
+    --bmw-silver: #C0C0C0;
+    --bmw-dark-gray: #2C2C2C;
+    --bmw-light-gray: #F5F5F5;
+    --success-green: #28a745;
+    --warning-orange: #fd7e14;
+    --danger-red: #dc3545;
+    --white: #ffffff;
+    --shadow: 0 2px 8px rgba(0, 102, 204, 0.1);
+    --border-radius: 12px;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--bmw-light-gray);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.container {
+    max-width: 100%;
+    margin: 0;
+    padding: 8px;
+}
+
+/* Compact Header */
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+    background: var(--white);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bmw-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.logo-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--bmw-blue);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    overflow: hidden;
+}
+
+.logo-quadrant {
+    background: var(--bmw-blue);
+}
+
+.logo-quadrant.q2,
+.logo-quadrant.q3 {
+    background: var(--white);
+}
+
+.title {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--bmw-dark-blue);
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0, 102, 204, 0.1);
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    color: var(--bmw-dark-blue);
+    font-weight: 500;
+}
+
+.user-menu-btn {
+    background: var(--bmw-blue);
+    color: var(--white);
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.sync-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--bmw-dark-gray);
+}
+
+.date-display {
+    font-size: 0.9rem;
+    color: var(--bmw-dark-gray);
+    text-align: center;
+    font-weight: 500;
+}
+
+/* User Menu */
+.user-menu {
+    position: absolute;
+    top: 60px;
+    right: 12px;
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    min-width: 160px;
+    overflow: hidden;
+}
+
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-bottom: 1px solid var(--bmw-light-gray);
+}
+
+.menu-item:hover {
+    background: var(--bmw-light-gray);
+}
+
+.menu-item:last-child {
+    border-bottom: none;
+}
+
+.menu-divider {
+    height: 1px;
+    background: var(--bmw-light-gray);
+}
+
+/* Compact Time Section - 2x2 Grid */
+.time-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.time-card {
+    background: var(--white);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    text-align: center;
+    position: relative;
+}
+
+.time-card h2 {
+    color: var(--bmw-dark-gray);
+    margin-bottom: 6px;
+    font-weight: 400;
+    font-size: 0.9rem;
+}
+
+.time-display {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--bmw-blue);
+    margin-bottom: 4px;
+    font-family: 'Courier New', monospace;
+}
+
+.time-display.primary {
+    color: var(--bmw-dark-blue);
+    font-size: 1.6rem;
+}
+
+.time-display.countdown {
+    color: var(--warning-orange);
+}
+
+.session-status {
+    color: var(--bmw-dark-gray);
+    font-size: 0.7rem;
+    font-style: italic;
+}
+
+.time-card.warning {
+    border-left: 3px solid var(--warning-orange);
+}
+
+.time-card.danger {
+    border-left: 3px solid var(--danger-red);
+}
+
+/* Compact Progress Section */
+.progress-section {
+    margin-bottom: 12px;
+}
+
+.progress-container {
+    background: var(--white);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.progress-header h3 {
+    color: var(--bmw-dark-blue);
+    font-weight: 500;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.progress-text {
+    color: var(--bmw-dark-gray);
+    font-size: 0.8rem;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--bmw-light-gray);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--bmw-blue), var(--bmw-light-blue));
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-fill.warning {
+    background: linear-gradient(90deg, var(--warning-orange), #ff9a3c);
+}
+
+.progress-fill.danger {
+    background: linear-gradient(90deg, var(--danger-red), #e74c3c);
+}
+
+/* Compact Action Section */
+.action-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.action-btn {
+    padding: 12px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.action-btn:active {
+    transform: scale(0.98);
+}
+
+.action-btn.primary {
+    background: var(--bmw-blue);
+    color: var(--white);
+    box-shadow: 0 2px 8px rgba(0, 102, 204, 0.3);
+}
+
+.action-btn.secondary {
+    background: var(--bmw-silver);
+    color: var(--bmw-dark-gray);
+}
+
+.action-btn.danger {
+    background: var(--danger-red);
+    color: var(--white);
+}
+
+.action-btn.success {
+    background: var(--success-green);
+    color: var(--white);
+}
+
+.action-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Compact Sessions List */
+.sessions-section {
+    margin-bottom: 12px;
+}
+
+.sessions-container {
+    background: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.sessions-header {
+    padding: 12px;
+    background: var(--bmw-light-gray);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sessions-header h3 {
+    font-size: 1rem;
+    color: var(--bmw-dark-blue);
+    margin: 0;
+}
+
+.sessions-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.session-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--bmw-light-gray);
+    align-items: center;
+}
+
+.session-item:last-child {
+    border-bottom: none;
+}
+
+.session-time {
+    font-size: 0.8rem;
+    color: var(--bmw-dark-gray);
+}
+
+.session-duration {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--bmw-blue);
+    font-family: 'Courier New', monospace;
+}
+
+.session-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.session-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+.session-btn:hover {
+    background: var(--bmw-light-gray);
+}
+
+/* Settings Panel */
+.settings-panel {
+    background: var(--white);
+    padding: 12px;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+}
+
+.settings-panel h3 {
+    font-size: 1rem;
+    color: var(--bmw-dark-blue);
+    margin-bottom: 8px;
+}
+
+.setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--bmw-light-gray);
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-label {
+    font-size: 0.9rem;
+    color: var(--bmw-dark-gray);
+}
+
+.setting-input {
+    padding: 4px 8px;
+    border: 1px solid var(--bmw-silver);
+    border-radius: 4px;
+    font-size: 0.8rem;
+    width: 60px;
+    text-align: center;
+}
+
+/* Toast Messages */
+.toast {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 500;
+    z-index: 1001;
+    max-width: calc(100vw - 24px);
+}
+
+.toast.success {
+    background: var(--success-green);
+}
+
+.toast.error {
+    background: var(--danger-red);
+}
+
+.toast.warning {
+    background: var(--warning-orange);
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--bmw-light-gray);
+    border-top: 3px solid var(--bmw-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 12px;
+}
+
+.loading-text {
+    color: var(--bmw-dark-gray);
+    font-size: 0.9rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Hide elements for ultra-compact view */
+@media (max-height: 600px) {
+    .progress-section {
+        display: none;
+    }
+    
+    .sessions-list {
+        max-height: 120px;
+    }
+}
+
+/* Landscape orientation optimization */
+@media (orientation: landscape) and (max-height: 500px) {
+    .time-section {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .action-section {
+        grid-template-columns: repeat(4, 1fr);
+    }
+    
+    .container {
+        padding: 4px;
+    }
+    
+    .header {
+        padding: 8px;
+        margin-bottom: 8px;
+    }
+}
+
+/* Ultra-small screens */
+@media (max-width: 320px) {
+    .time-display {
+        font-size: 1.2rem;
+    }
+    
+    .time-display.primary {
+        font-size: 1.4rem;
+    }
+    
+    .time-card h2 {
+        font-size: 0.8rem;
+    }
+    
+    .session-status {
+        font-size: 0.6rem;
+    }
+}
