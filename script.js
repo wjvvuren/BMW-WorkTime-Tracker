@@ -8,40 +8,84 @@ class WorkTimeTracker {
 			return;
 		}
 
-		// Check for redirect loops
-		if (sessionStorage.getItem('authRedirectInProgress') === 'true') {
-			console.log('Potential redirect loop detected, clearing flag');
-			sessionStorage.removeItem('authRedirectInProgress');
+		// Wait for DOM to be fully loaded before starting
+		if (document.readyState === 'loading') {
+			document.addEventListener('DOMContentLoaded', () => {
+				this.performAuthCheck();
+			});
+		} else {
+			this.performAuthCheck();
 		}
-
-		// Check authentication with more robust error handling
-		this.performAuthCheck();
 	}
 
 	async performAuthCheck() {
+		this.updateMainDebug('Starting auth check...');
+		
 		try {
 			console.log('Performing authentication check...');
+
+			// Clear redirect flag if we made it to main app successfully  
+			const wasRedirecting = sessionStorage.getItem('authRedirectInProgress') === 'true';
+			const redirectTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+			
+			if (wasRedirecting) {
+				this.updateMainDebug('Processing redirect...');
+				const now = Date.now();
+				const timestamp = parseInt(redirectTimestamp) || 0;
+				
+				// Only clear if redirect was recent (within last 30 seconds)
+				if (now - timestamp < 30000) {
+					console.log('Successful redirect detected, clearing flags');
+					this.updateMainDebug('Successful redirect - clearing flags');
+					sessionStorage.removeItem('authRedirectInProgress');
+					sessionStorage.removeItem('authRedirectTimestamp');
+				}
+			}
 
 			const isAuth = await this.checkAuthentication();
 			if (!isAuth) {
 				console.log('Authentication failed, redirecting to login');
-				// Add parameter to prevent infinite loops
-				window.location.href = 'login.html?from=main-app';
+				this.updateMainDebug('Auth failed - redirecting to login');
+				
+				// Prevent multiple redirects with timestamp check
+				const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
+				const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+				
+				if (existingRedirect !== 'true' || !existingTimestamp || 
+				    (Date.now() - parseInt(existingTimestamp)) > 10000) {
+					// set flags then redirect to login, adding a cache-busting param to avoid cached html
+					sessionStorage.setItem('authRedirectInProgress', 'true');
+					sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
+					const cb = `cb=${Date.now()}`;
+					window.location.href = `login.html?from=main-app&${cb}`;
+				} else {
+					console.log('Recent redirect attempt detected, avoiding duplicate redirect');
+					this.updateMainDebug('Avoiding duplicate redirect');
+				}
 				return;
 			}
 
 			console.log('Authentication successful, initializing app');
-			
-			// Clear any redirect flags
-			sessionStorage.removeItem('authRedirectInProgress');
+			this.updateMainDebug('Auth successful - initializing app');
 			
 			// Initialize the app
 			await this.initializeApp();
 			
 		} catch (error) {
 			console.error('Error during authentication check:', error);
-			// On any error, redirect to login with error flag
-			window.location.href = 'login.html?from=main-app&error=auth-failed';
+			this.updateMainDebug(`Auth error: ${error.message}`);
+			
+			// On any error, redirect to login with error flag (but check for recent redirects)
+			const existingRedirect = sessionStorage.getItem('authRedirectInProgress');
+			const existingTimestamp = sessionStorage.getItem('authRedirectTimestamp');
+			
+			if (existingRedirect !== 'true' || !existingTimestamp || 
+			    (Date.now() - parseInt(existingTimestamp)) > 10000) {
+				
+				sessionStorage.setItem('authRedirectInProgress', 'true');
+				sessionStorage.setItem('authRedirectTimestamp', Date.now().toString());
+				window.location.href = 'login.html?from=main-app&error=auth-failed';
+			}
 		}
 	}
 
@@ -57,6 +101,7 @@ class WorkTimeTracker {
 		this.mandatoryLunchHours = 5;
 		this.lunchDuration = 30; // minutes
 		this.userMenuVisible = false;
+		this.hasRecentChanges = false;
 		
 		// Initialize app
 		this.initElements();
@@ -136,6 +181,11 @@ class WorkTimeTracker {
 
 			console.log('Saving data to Back4App...');
 
+			// Update sync status if CloudStorage is available
+			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
+				this.cloudStorage.updateSyncStatus('syncing');
+			}
+
 			// Find existing work data or create new
 			const WorkData = Parse.Object.extend('WorkData');
 			const query = new Parse.Query(WorkData);
@@ -165,7 +215,7 @@ class WorkTimeTracker {
 			return true;
 		} catch (error) {
 			console.error('Error saving to cloud:', error);
-			if (this.cloudStorage) {
+			if (this.cloudStorage && typeof this.cloudStorage.updateSyncStatus === 'function') {
 				this.cloudStorage.updateSyncStatus('error');
 			}
 			return false;
@@ -189,15 +239,23 @@ class WorkTimeTracker {
 	}
 
 	async checkAuthentication() {
+		this.updateMainDebug('Checking Parse initialization...');
+		
 		try {
 			// Check if Parse is initialized
 			if (typeof Parse === 'undefined') {
 				console.error('Parse is not defined - config may not be loaded');
+				this.updateMainDebug('ERROR: Parse not defined');
 				return false;
 			}
 
+			// Give Parse more time to initialize fully and process any recent login
+			this.updateMainDebug('Waiting for Parse to fully initialize...');
+			await new Promise(resolve => setTimeout(resolve, 500));
+
 			const currentUser = Parse.User.current();
 			console.log('Main app auth check:', currentUser ? 'User authenticated' : 'No authentication');
+			this.updateMainDebug(currentUser ? `User found: ${currentUser.get('email') || 'Unknown'}` : 'No user found');
 			
 			if (!currentUser) {
 				console.log('No current user found');
@@ -208,22 +266,40 @@ class WorkTimeTracker {
 			const sessionToken = currentUser.getSessionToken();
 			if (!sessionToken) {
 				console.log('No session token found, user session may be invalid');
+				this.updateMainDebug('ERROR: No session token');
 				return false;
 			}
 
 			// Verify session by fetching user from server to avoid stale sessions
 			try {
+				console.log('Verifying session with server...');
+				this.updateMainDebug('Verifying session with server...');
 				await currentUser.fetch();
 				console.log('Authentication check passed (server verified)');
+				this.updateMainDebug('✅ Session verified - user authenticated');
 				return true;
 			} catch (e) {
-				console.warn('Session fetch failed, logging out', e);
-				await Parse.User.logOut();
+				console.warn('Session fetch failed, logging out user', e);
+				this.updateMainDebug(`Session verification failed: ${e.message}`);
+				try {
+					await Parse.User.logOut();
+				} catch (logoutError) {
+					console.warn('Error during logout:', logoutError);
+				}
 				return false;
 			}
 		} catch (error) {
 			console.error('Authentication check error:', error);
+			this.updateMainDebug(`Auth check error: ${error.message}`);
 			return false;
+		}
+	}
+
+	updateMainDebug(message) {
+		const debugElement = document.getElementById('mainDebugInfo');
+		if (debugElement) {
+			const timestamp = new Date().toLocaleTimeString();
+			debugElement.innerHTML = `${timestamp}: ${message}`;
 		}
 	}
 
